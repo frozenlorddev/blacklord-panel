@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mzazi Tech</title>
+  <style>
+    /* ─── Reset & base ─────────────────────────────────────── */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #f0f4ff;
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; border: none; background: none; font: inherit; }
+    input, textarea, select {
+      font: inherit;
+      background: #0f1629;
+      border: 1px solid #1e2d4a;
+      color: #f0f4ff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: #2563eb; }
+    textarea { resize: vertical; min-height: 80px; }
+    select { appearance: auto; }
+
+    /* ─── Layout ────────────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+    .flex { display: flex; align-items: center; gap: 12px; }
+    .flex-col { flex-direction: column; }
+    .justify-between { justify-content: space-between; }
+    .gap-1 { gap: 4px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .gap-6 { gap: 24px; }
+    .text-center { text-align: center; }
+    .w-full { width: 100%; }
+    .mt-2 { margin-top: 8px; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+    .mt-8 { margin-top: 32px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .mb-6 { margin-bottom: 24px; }
+    .mb-8 { margin-bottom: 32px; }
+    .p-4 { padding: 16px; }
+    .p-6 { padding: 24px; }
+    .rounded { border-radius: 12px; }
+    .rounded-full { border-radius: 9999px; }
+    .bg-card { background: #0f1629; }
+    .border { border: 1px solid #1e2d4a; }
+    .text-muted { color: #64748b; }
+    .text-blue { color: #60a5fa; }
+    .text-green { color: #4ade80; }
+    .text-red { color: #f87171; }
+    .text-purple { color: #a78bfa; }
+    .text-yellow { color: #facc15; }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .text-sm { font-size: 0.875rem; }
+    .text-xs { font-size: 0.75rem; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-3xl { font-size: 1.875rem; }
+    .text-4xl { font-size: 2.25rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .hidden { display: none; }
+    .block { display: block; }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+
+    /* ─── Buttons ───────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #1e2d4a;
+      color: #94a3b8;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .btn-outline:hover { background: #1e2d4a; }
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+
+    /* ─── Navbar ────────────────────────────────────────────── */
+    .navbar {
+      background: #0a0a0f;
+      border-bottom: 1px solid #1e2d4a;
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .navbar .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-links a {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #94a3b8;
+    }
+    .nav-links a.active { color: #3b82f6; background: rgba(37,99,235,0.1); }
+    .nav-links a:hover { background: #1e2d4a; }
+
+    /* ─── Sections / pages ──────────────────────────────────── */
+    .page { display: none; padding: 32px 0; }
+    .page.active { display: block; }
+    .hero {
+      background: linear-gradient(180deg, #071428, #0a0a0f);
+      padding: 60px 0;
+      text-align: center;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; }
+    .hero p { color: #64748b; max-width: 600px; margin: 16px auto; }
+
+    /* ─── Cards ─────────────────────────────────────────────── */
+    .card {
+      background: #0f1629;
+      border: 1px solid #1e2d4a;
+      border-radius: 16px;
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+    /* ─── Wallet badge ──────────────────────────────────────── */
+    .wallet-badge {
+      background: rgba(37,99,235,0.1);
+      border: 1px solid rgba(37,99,235,0.2);
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #60a5fa;
+    }
+
+    /* ─── Responsive ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .nav-links { gap: 4px; }
+      .nav-links a { font-size: 0.75rem; padding: 4px 8px; }
+      .flex-wrap { flex-wrap: wrap; }
+      .mobile-col { flex-direction: column; align-items: stretch; }
+    }
+
+    /* ─── Toast / alert ─────────────────────────────────────── */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 0.875rem;
+    }
+    .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+    .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+    .alert-info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
+
+    /* ─── Spinner ───────────────────────────────────────────── */
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #1e2d4a;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Misc ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-active { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .badge-pending { background: rgba(251,146,60,0.1); color: #fb923c; border: 1px solid rgba(251,146,60,0.2); }
+    .badge-closed { background: rgba(100,116,139,0.1); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navbar ────────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar">
+    <div class="container flex justify-between">
+      <a href="#" onclick="navigate('home')" class="logo">MZAZI TECH</a>
+      <div class="nav-links" id="navLinks">
+        <a href="#" onclick="navigate('home')" class="active" data-page="home">Home</a>
+        <a href="#" onclick="navigate('products')" data-page="products">Panels</a>
+        <a href="#" onclick="navigate('whatsapp')" data-page="whatsapp">WhatsApp</a>
+        <a href="#" onclick="navigate('about')" data-page="about">About</a>
+        <a href="#" onclick="navigate('contact')" data-page="contact">Contact</a>
+        <span id="authNav" style="display:flex;gap:6px;align-items:center;margin-left:8px;">
+          <a href="#" onclick="navigate('login')" id="loginBtn" data-page="login">Login</a>
+          <a href="#" onclick="navigate('signup')" id="signupBtn" data-page="signup" class="btn-primary" style="padding:4px 12px;font-size:0.8rem;">Sign Up</a>
+        </span>
+        <span id="userNav" style="display:none;align-items:center;gap:8px;margin-left:8px;">
+          <span class="wallet-badge" id="walletBadge">💳 KSH 0</span>
+          <a href="#" onclick="navigate('dashboard')" data-page="dashboard">Dashboard</a>
+          <a href="#" onclick="logout()" style="color:#f87171;">Logout</a>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── Pages ──────────────────────────────────────────────── -->
+  <div id="app">
+    <!-- Home -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div class="container">
+          <h1>Power Your <span style="background:linear-gradient(135deg,#60a5fa,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Digital World</span></h1>
+          <p>Pterodactyl panel hosting, WhatsApp automation, and tech solutions — all under one roof.</p>
+          <div class="flex" style="justify-content:center;flex-wrap:wrap;gap:12px;margin-top:24px;">
+            <button onclick="navigate('products')" class="btn-primary">🚀 Deploy a Panel</button>
+            <button onclick="navigate('whatsapp')" class="btn-outline">🤖 WhatsApp Bot</button>
+          </div>
+        </div>
+      </div>
+      <div class="container">
+        <div class="grid-3 mt-8">
+          <div class="card"><h3>🖥️ Pterodactyl Panels</h3><p class="text-muted text-sm">Deploy game servers instantly with full panel access.</p></div>
+          <div class="card"><h3>🤖 WhatsApp Bot</h3><p class="text-muted text-sm">Link your WhatsApp via Telegram bot pairing.</p></div>
+          <div class="card"><h3>💳 Wallet System</h3><p class="text-muted text-sm">Top up via M-Pesa or card and deploy instantly.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products -->
+    <div class="page" id="page-products">
+      <div class="container">
+        <h2 class="text-3xl font-extrabold mb-4">Deploy a Panel</h2>
+        <p class="text-muted mb-6">Choose a plan and go live in minutes.</p>
+        <div id="packagesList" class="grid-3"></div>
+        <div id="deployForm" style="display:none;margin-top:32px;background:#0f1629;padding:24px;border-radius:16px;border:1px solid #1e2d4a;">
+          <h3 class="font-bold mb-4">Configure Server</h3>
+          <form id="panelForm" onsubmit="createPanel(event)">
+            <input type="hidden" id="pkgId" />
+            <div class="grid-2">
+              <input type="text" id="pteroUser" placeholder="Panel Username" required />
+              <input type="password" id="pteroPass" placeholder="Panel Password" required />
+              <input type="text" id="firstName" placeholder="First Name" required />
+              <input type="text" id="lastName" placeholder="Last Name" required />
+            </div>
+            <div class="grid-2 mt-2">
+              <select id="nestSelect" required><option value="">Select Nest</option></select>
+              <select id="eggSelect" required><option value="">Select Egg</option></select>
+            </div>
+            <div class="flex gap-3 mt-4 flex-wrap">
+              <button type="submit" class="btn-success">✅ Deploy Panel</button>
+              <button type="button" onclick="document.getElementById('deployForm').style.display='none'" class="btn-outline">Cancel</button>
+            </div>
+            <div id="deployError" class="alert alert-error hidden mt-2"></div>
+          </form>
+        </div>
+        <div id="deployResult" style="display:none;margin-top:24px;background:#0f1629;padding:24px;border-radius:16px;border:1px solid rgba(34,197,94,0.3);">
+          <h3 class="text-green">🎉 Panel Deployed!</h3>
+          <div id="credsDisplay" class="mt-4" style="background:#0a0a0f;padding:16px;border-radius:10px;border:1px solid #1e2d4a;"></div>
+          <button onclick="navigate('dashboard')" class="btn-primary mt-4">Go to Dashboard</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WhatsApp -->
+    <div class="page" id="page-whatsapp">
+      <div class="container">
+        <h2 class="text-3xl font-extrabold mb-4">🤖 WhatsApp Bot</h2>
+        <p class="text-muted mb-6">Connect your WhatsApp via Telegram bot.</p>
+        <div class="card">
+          <h3>How to link:</h3>
+          <ol style="padding-left:20px;color:#94a3b8;line-height:2;">
+            <li>Open <a href="https://t.me/mrsmzazixdbot" target="_blank" style="color:#60a5fa;">@mrsmzazixdbot</a> on Telegram</li>
+            <li>Send <code style="background:#1e2d4a;padding:2px 8px;border-radius:4px;">/start</code></li>
+            <li>Send <code style="background:#1e2d4a;padding:2px 8px;border-radius:4px;">/pair 254XXXXXXXXX</code></li>
+            <li>Enter the code in WhatsApp → Linked Devices</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="page" id="page-about">
+      <div class="container">
+        <h2 class="text-3xl font-extrabold mb-4">About Mzazi Tech</h2>
+        <p class="text-muted">We power Kenya's digital infrastructure. Founded by visionaries, we offer affordable panel hosting and automation solutions.</p>
+        <div class="grid-3 mt-6">
+          <div class="card"><span class="text-2xl">⚡</span><h4>Speed First</h4><p class="text-sm text-muted">Deploy in under 2 minutes.</p></div>
+          <div class="card"><span class="text-2xl">🔒</span><h4>Security</h4><p class="text-sm text-muted">Enterprise-grade encryption.</p></div>
+          <div class="card"><span class="text-2xl">🇰🇪</span><h4>Kenya Focused</h4><p class="text-sm text-muted">M-Pesa, local support, KSH.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="page" id="page-contact">
+      <div class="container">
+        <h2 class="text-3xl font-extrabold mb-4">Contact Us</h2>
+        <p class="text-muted mb-6">Reach out via any channel or send an inquiry.</p>
+        <div class="grid-2">
+          <div class="card"><h3>📱 WhatsApp</h3><a href="https://wa.me/254108595201" target="_blank" class="text-blue">Chat now</a></div>
+          <div class="card"><h3>✈️ Telegram</h3><a href="https://t.me/mzazitech" target="_blank" class="text-blue">@mzazitech</a></div>
+          <div class="card"><h3>📧 Email</h3><a href="mailto:mzazitechinc@gmail.com" class="text-blue">mzazitechinc@gmail.com</a></div>
+          <div class="card"><h3>🤖 Bot</h3><a href="https://t.me/mrsmzazixdbot" target="_blank" class="text-blue">@mrsmzazixdbot</a></div>
+        </div>
+        <div class="card mt-6" id="inquirySection">
+          <h3 class="font-bold mb-4">Send an Inquiry</h3>
+          <form id="inquiryForm" onsubmit="sendInquiry(event)">
+            <input type="text" id="inqSubject" placeholder="Subject" required />
+            <textarea id="inqMessage" placeholder="Your message..." required></textarea>
+            <button type="submit" class="btn-primary mt-2">Send Inquiry</button>
+          </form>
+          <div id="inqResult" class="hidden mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login -->
+    <div class="page" id="page-login">
+      <div class="container" style="max-width:420px;margin:0 auto;">
+        <div class="card">
+          <h2 class="text-2xl font-extrabold mb-4 text-center">Welcome Back</h2>
+          <form id="loginForm" onsubmit="login(event)">
+            <input type="email" id="loginEmail" placeholder="Email" required />
+            <input type="password" id="loginPassword" placeholder="Password" required class="mt-2" />
+            <button type="submit" class="btn-primary w-full mt-4">Sign In</button>
+          </form>
+          <p class="text-center text-sm text-muted mt-4">No account? <a href="#" onclick="navigate('signup')" class="text-blue">Sign up</a></p>
+          <div id="loginError" class="alert alert-error hidden mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signup -->
+    <div class="page" id="page-signup">
+      <div class="container" style="max-width:420px;margin:0 auto;">
+        <div class="card">
+          <h2 class="text-2xl font-extrabold mb-4 text-center">Create Account</h2>
+          <form id="signupForm" onsubmit="signup(event)">
+            <div class="grid-2">
+              <input type="text" id="signupFirst" placeholder="First" required />
+              <input type="text" id="signupLast" placeholder="Last" required />
+            </div>
+            <input type="email" id="signupEmail" placeholder="Email" required class="mt-2" />
+            <input type="password" id="signupPassword" placeholder="Password (min 6)" required class="mt-2" />
+            <button type="submit" class="btn-primary w-full mt-4">Create Account</button>
+          </form>
+          <p class="text-center text-sm text-muted mt-4">Already have an account? <a href="#" onclick="navigate('login')" class="text-blue">Login</a></p>
+          <div id="signupError" class="alert alert-error hidden mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="page" id="page-dashboard">
+      <div class="container">
+        <div class="flex justify-between flex-wrap gap-3 mb-6">
+          <div><h2 class="text-3xl font-extrabold">Dashboard</h2><p class="text-muted" id="userGreeting">Welcome back!</p></div>
+          <div class="flex gap-3">
+            <button onclick="navigate('wallet')" class="wallet-badge" id="dashWallet">💳 KSH 0</button>
+            <button onclick="navigate('products')" class="btn-primary" style="padding:6px 16px;">New Panel</button>
+          </div>
+        </div>
+        <div id="dashPanels" class="grid-3"></div>
+        <div id="dashEmpty" class="card text-center py-8" style="display:none;">
+          <p class="text-muted">No panels yet. <a href="#" onclick="navigate('products')" class="text-blue">Deploy one now →</a></p>
+        </div>
+        <div class="card mt-6">
+          <h3 class="font-bold mb-4">Recent Activity</h3>
+          <div id="dashTxns" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet -->
+    <div class="page" id="page-wallet">
+      <div class="container" style="max-width:640px;margin:0 auto;">
+        <h2 class="text-3xl font-extrabold mb-4">💳 My Wallet</h2>
+        <div class="card text-center">
+          <p class="text-muted text-sm">Available Balance</p>
+          <p class="text-4xl font-extrabold text-blue" id="walletBalance">KSH 0</p>
+        </div>
+        <div class="card mt-4">
+          <h3 class="font-bold mb-2">Deposit Funds</h3>
+          <form id="depositForm" onsubmit="deposit(event)">
+            <input type="number" id="depositAmount" placeholder="Amount (min 10)" min="10" required />
+            <button type="submit" class="btn-primary w-full mt-2">Deposit via Paystack</button>
+          </form>
+          <div id="depositError" class="alert alert-error hidden mt-2"></div>
+        </div>
+        <div class="card mt-4">
+          <h3 class="font-bold mb-2">Redeem Voucher</h3>
+          <form id="voucherForm" onsubmit="redeemVoucher(event)">
+            <input type="text" id="voucherCode" placeholder="Enter 6-character code" maxlength="6" style="text-transform:uppercase;" required />
+            <button type="submit" class="btn-success w-full mt-2">Activate Voucher</button>
+          </form>
+          <div id="voucherResult" class="hidden mt-2"></div>
+        </div>
+        <div class="card mt-4">
+          <h3 class="font-bold mb-4">Transaction History</h3>
+          <div id="txnList" style="max-height:300px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── JavaScript ─────────────────────────────────────────── -->
+  <script>
+    // ─── State ────────────────────────────────────────────────
+    let currentUser = null;
+    let token = localStorage.getItem('token') || '';
+    let adminToken = localStorage.getItem('adminToken') || '';
+
+    // ─── Navigation ────────────────────────────────────────────
+    function navigate(page) {
+      document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('page-' + page);
+      if (target) target.classList.add('active');
+      // Update nav links
+      document.querySelectorAll('.nav-links a[data-page]').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === page);
+      });
+      // Show/hide auth/user nav
+      updateNav();
+      // Load data on certain pages
+      if (page === 'dashboard' && currentUser) loadDashboard();
+      if (page === 'wallet' && currentUser) loadWallet();
+      if (page === 'products') loadPackages();
+      if (page === 'contact') loadInquiries();
+      window.scrollTo(0, 0);
+    }
+
+    function updateNav() {
+      const authNav = document.getElementById('authNav');
+      const userNav = document.getElementById('userNav');
+      if (currentUser) {
+        authNav.style.display = 'none';
+        userNav.style.display = 'flex';
+        document.getElementById('userGreeting').textContent = 'Welcome, ' + (currentUser.firstname || 'User') + '!';
+        loadWalletBadge();
+      } else {
+        authNav.style.display = 'flex';
+        userNav.style.display = 'none';
+      }
+    }
+
+    async function loadWalletBadge() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch('/api/wallet/balance', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (data.balance !== undefined) {
+          document.getElementById('walletBadge').textContent = '💳 KSH ' + Number(data.balance).toLocaleString();
+        }
+      } catch {}
+    }
+
+    // ─── Auth ──────────────────────────────────────────────────
+    async function login(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(errEl, data.error); return; }
+        token = data.token;
+        localStorage.setItem('token', token);
+        currentUser = data.user;
+        updateNav();
+        navigate('dashboard');
+      } catch (e) { showError(errEl, 'Network error'); }
+    }
+
+    async function signup(e) {
+      e.preventDefault();
+      const firstname = document.getElementById('signupFirst').value;
+      const lastname = document.getElementById('signupLast').value;
+      const email = document.getElementById('signupEmail').value;
+      const password = document.getElementById('signupPassword').value;
+      const errEl = document.getElementById('signupError');
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firstname, lastname, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(errEl, data.error || data.detail); return; }
+        alert('Account created! Please login.');
+        navigate('login');
+      } catch (e) { showError(errEl, 'Network error'); }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      localStorage.removeItem('token');
+      token = '';
+      currentUser = null;
+      updateNav();
+      navigate('home');
+    }
+
+    function showError(el, msg) {
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // ─── Check auth on load ───────────────────────────────────
+    async function checkAuth() {
+      if (!token) return;
+      try {
+        const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          updateNav();
+          // If on login/signup, redirect to dashboard
+          const active = document.querySelector('.page.active');
+          if (active && (active.id === 'page-login' || active.id === 'page-signup')) {
+            navigate('dashboard');
+          }
+        } else {
+          localStorage.removeItem('token');
+          token = '';
+          currentUser = null;
+          updateNav();
+        }
+      } catch {}
+    }
+
+    // ─── Packages ─────────────────────────────────────────────
+    async function loadPackages() {
+      const container = document.getElementById('packagesList');
+      try {
+        const res = await fetch('/api/packages');
+        const data = await res.json();
+        if (!data.packages || data.packages.length === 0) {
+          container.innerHTML = '<p class="text-muted">No packages available.</p>';
+          return;
+        }
+        container.innerHTML = data.packages.map(p => `
+          <div class="card" style="${p.popular ? 'border-color:#2563eb;box-shadow:0 0 20px rgba(37,99,235,0.15);' : ''}">
+            ${p.popular ? '<span style="background:#2563eb;color:#fff;padding:2px 12px;border-radius:999px;font-size:0.7rem;font-weight:700;">Most Popular</span>' : ''}
+            <h3 class="font-bold text-lg">${p.name}</h3>
+            <p class="text-2xl font-extrabold" style="color:${p.accent || '#3b82f6'};">KSH ${Number(p.price).toLocaleString()}<span class="text-sm text-muted">/mo</span></p>
+            <p class="text-sm text-muted">${p.description || ''}</p>
+            <ul class="text-sm text-muted" style="list-style:none;padding:0;margin:8px 0;">
+              <li>${p.cpu === 0 ? 'Unlimited CPU' : p.cpu + '% CPU'}</li>
+              <li>${p.ram === 0 ? 'Unlimited RAM' : (p.ram >= 1024 ? (p.ram/1024)+' GB RAM' : p.ram + ' MB RAM')}</li>
+              <li>${p.disk === 0 ? 'Unlimited Disk' : (p.disk >= 1024 ? (p.disk/1024)+' GB Disk' : p.disk + ' MB Disk')}</li>
+              ${p.expires_after_hours ? `<li>⏱ Auto-removed after ${p.expires_after_hours}h</li>` : ''}
+            </ul>
+            <button onclick="selectPackage(${p.id})" class="btn-primary w-full">Choose Plan</button>
+          </div>
+        `).join('');
+      } catch (e) { container.innerHTML = '<p class="text-muted">Failed to load packages.</p>'; }
+    }
+
+    let selectedPkg = null;
+    function selectPackage(id) {
+      if (!currentUser) { alert('Please login first.'); navigate('login'); return; }
+      selectedPkg = id;
+      document.getElementById('pkgId').value = id;
+      document.getElementById('deployForm').style.display = 'block';
+      document.getElementById('deployResult').style.display = 'none';
+      loadNests();
+    }
+
+    async function loadNests() {
+      try {
+        const res = await fetch('/api/panel/nests', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const sel = document.getElementById('nestSelect');
+        sel.innerHTML = '<option value="">Select Nest</option>';
+        if (data.nests) {
+          data.nests.forEach(n => {
+            sel.innerHTML += `<option value="${n.id}">${n.name}</option>`;
+          });
+        }
+        sel.onchange = loadEggs;
+      } catch {}
+    }
+
+    async function loadEggs() {
+      const nestId = document.getElementById('nestSelect').value;
+      const sel = document.getElementById('eggSelect');
+      sel.innerHTML = '<option value="">Select Egg</option>';
+      if (!nestId) return;
+      try {
+        const res = await fetch(`/api/panel/eggs?nest_id=${nestId}`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (data.eggs) {
+          data.eggs.forEach(e => {
+            sel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+          });
+        }
+      } catch {}
+    }
+
+    async function createPanel(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('deployError');
+      errEl.classList.add('hidden');
+      const payload = {
+        package_id: parseInt(document.getElementById('pkgId').value),
+        ptero_username: document.getElementById('pteroUser').value,
+        ptero_password: document.getElementById('pteroPass').value,
+        firstname: document.getElementById('firstName').value,
+        lastname: document.getElementById('lastName').value,
+        nest_id: parseInt(document.getElementById('nestSelect').value),
+        egg_id: parseInt(document.getElementById('eggSelect').value),
+      };
+      try {
+        const res = await fetch('/api/panel/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(errEl, data.error || 'Failed to create panel'); return; }
+        document.getElementById('deployForm').style.display = 'none';
+        const creds = data.panel;
+        document.getElementById('credsDisplay').innerHTML = `
+          <p><strong>🌐 Panel URL:</strong> ${creds.panel_url || 'https://public.mzazi.shop'}</p>
+          <p><strong>👤 Username:</strong> ${creds.username}</p>
+          <p><strong>🔑 Password:</strong> ${creds.password}</p>
+          <p><strong>📦 Package:</strong> ${creds.package}</p>
+          ${creds.expires_at ? `<p><strong>⏱ Expires:</strong> ${new Date(creds.expires_at).toLocaleString()}</p>` : ''}
+          <p class="text-xs text-red mt-2">⚠️ Save your password now — it won't be shown again.</p>
+        `;
+        document.getElementById('deployResult').style.display = 'block';
+        loadDashboard();
+      } catch (e) { showError(errEl, 'Network error'); }
+    }
+
+    // ─── Dashboard ────────────────────────────────────────────
+    async function loadDashboard() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch('/api/panel/list', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const container = document.getElementById('dashPanels');
+        const empty = document.getElementById('dashEmpty');
+        if (!data.panels || data.panels.length === 0) {
+          container.innerHTML = '';
+          empty.style.display = 'block';
+        } else {
+          empty.style.display = 'none';
+          container.innerHTML = data.panels.map(p => `
+            <div class="card">
+              <h4 class="font-bold">${p.ptero_username || 'Panel #' + p.id}</h4>
+              <p class="text-sm text-muted">${p.package_name} · KSH ${Number(p.package_price).toLocaleString()}</p>
+              <div class="flex gap-2 mt-2 flex-wrap">
+                <span class="badge ${p.status === 'active' ? 'badge-active' : 'badge-pending'}">${p.status}</span>
+                ${p.expires_at ? `<span class="badge ${p.is_expired ? 'badge-closed' : 'badge-active'}">${p.is_expired ? 'Expired' : 'Expires ' + new Date(p.expires_at).toLocaleDateString()}</span>` : ''}
+                <button onclick="viewCredentials(${p.id})" class="btn-outline" style="padding:2px 10px;font-size:0.7rem;">🔐 Credentials</button>
+              </div>
+            </div>
+          `).join('');
+        }
+        // Load transactions
+        const txnRes = await fetch('/api/wallet/balance', { headers: { 'Authorization': 'Bearer ' + token } });
+        const txnData = await txnRes.json();
+        const txnContainer = document.getElementById('dashTxns');
+        if (txnData.transactions && txnData.transactions.length > 0) {
+          txnContainer.innerHTML = txnData.transactions.slice(0,5).map(t => `
+            <div class="flex justify-between" style="border-bottom:1px solid #1e2d4a;padding:6px 0;">
+              <span class="text-sm">${t.description || t.type}</span>
+              <span style="color:${t.type === 'deposit' ? '#4ade80' : '#f87171'};">${t.type === 'deposit' ? '+' : '-'}KSH ${Number(t.amount).toLocaleString()}</span>
+            </div>
+          `).join('');
+        } else {
+          txnContainer.innerHTML = '<p class="text-sm text-muted">No transactions yet.</p>';
+        }
+        document.getElementById('dashWallet').textContent = '💳 KSH ' + Number(txnData.balance || 0).toLocaleString();
+      } catch {}
+    }
+
+    async function viewCredentials(panelId) {
+      const password = prompt('Enter your account password to view credentials:');
+      if (!password) return;
+      try {
+        const res = await fetch('/api/panel/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ panel_id: panelId, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error || 'Failed to fetch credentials'); return; }
+        const c = data.credentials;
+        alert(
+          `Panel URL: ${c.panel_url}\nUsername: ${c.username}\nPassword: ${c.password}\nEmail: ${c.email || 'N/A'}`
+        );
+      } catch { alert('Network error'); }
+    }
+
+    // ─── Wallet ───────────────────────────────────────────────
+    async function loadWallet() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch('/api/wallet/balance', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        document.getElementById('walletBalance').textContent = 'KSH ' + Number(data.balance || 0).toLocaleString();
+        const txnList = document.getElementById('txnList');
+        if (data.transactions && data.transactions.length > 0) {
+          txnList.innerHTML = data.transactions.map(t => `
+            <div class="flex justify-between" style="border-bottom:1px solid #1e2d4a;padding:8px 0;">
+              <div><span class="text-sm">${t.description || t.type}</span><br><span class="text-xs text-muted">${new Date(t.created_at).toLocaleDateString()}</span></div>
+              <span style="color:${t.type === 'deposit' ? '#4ade80' : '#f87171'};font-weight:700;">${t.type === 'deposit' ? '+' : '-'}KSH ${Number(t.amount).toLocaleString()}</span>
+            </div>
+          `).join('');
+        } else {
+          txnList.innerHTML = '<p class="text-sm text-muted">No transactions.</p>';
+        }
+        document.getElementById('walletBadge').textContent = '💳 KSH ' + Number(data.balance || 0).toLocaleString();
+      } catch {}
+    }
+
+    async function deposit(e) {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('depositAmount').value);
+      const errEl = document.getElementById('depositError');
+      errEl.classList.add('hidden');
+      if (!amount || amount < 10) { showError(errEl, 'Minimum deposit is KSH 10'); return; }
+      try {
+        const res = await fetch('/api/wallet/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ amount }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(errEl, data.error || 'Deposit failed'); return; }
+        if (data.authorization_url) {
+          window.location.href = data.authorization_url;
+        } else {
+          showError(errEl, 'No payment URL returned.');
+        }
+      } catch { showError(errEl, 'Network error'); }
+    }
+
+    async function redeemVoucher(e) {
+      e.preventDefault();
+      const code = document.getElementById('voucherCode').value.trim().toUpperCase();
+      const resultEl = document.getElementById('voucherResult');
+      resultEl.classList.add('hidden');
+      if (code.length !== 6) { alert('Code must be 6 characters.'); return; }
+      try {
+        const res = await fetch('/api/vouchers/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json();
+        resultEl.classList.remove('hidden');
+        if (!res.ok) {
+          resultEl.className = 'alert alert-error mt-2';
+          resultEl.textContent = data.error || 'Invalid code';
+          return;
+        }
+        resultEl.className = 'alert alert-success mt-2';
+        resultEl.textContent = `✅ ${data.message} New balance: KSH ${Number(data.newBalance).toLocaleString()}`;
+        document.getElementById('voucherCode').value = '';
+        loadWallet();
+        loadWalletBadge();
+      } catch { alert('Network error'); }
+    }
+
+    // ─── Inquiries ────────────────────────────────────────────
+    async function sendInquiry(e) {
+      e.preventDefault();
+      if (!currentUser) { alert('Please login first.'); navigate('login'); return; }
+      const subject = document.getElementById('inqSubject').value;
+      const message = document.getElementById('inqMessage').value;
+      const resultEl = document.getElementById('inqResult');
+      resultEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/inquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ subject, message }),
+        });
+        const data = await res.json();
+        resultEl.classList.remove('hidden');
+        if (!res.ok) {
+          resultEl.className = 'alert alert-error';
+          resultEl.textContent = data.error || 'Failed to send';
+          return;
+        }
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '✅ Inquiry sent! We\'ll reply within 2 hours.';
+        document.getElementById('inqSubject').value = '';
+        document.getElementById('inqMessage').value = '';
+      } catch { alert('Network error'); }
+    }
+
+    async function loadInquiries() {
+      // Optional: show existing inquiries in contact page
+    }
+
+    // ─── Init ──────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      // Load home packages
+      loadPackages();
+      // If user is logged in, load dashboard data (but only if dashboard is active)
+      if (currentUser) {
+        const active = document.querySelector('.page.active');
+        if (active && active.id === 'page-dashboard') loadDashboard();
+        if (active && active.id === 'page-wallet') loadWallet();
+      }
+      // Set up wallet badge update interval
+      setInterval(() => { if (currentUser) loadWalletBadge(); }, 30000);
+    });
+
+    // ─── Expose to HTML ───────────────────────────────────────
+    window.navigate = navigate;
+    window.login = login;
+    window.signup = signup;
+    window.logout = logout;
+    window.selectPackage = selectPackage;
+    window.createPanel = createPanel;
+    window.viewCredentials = viewCredentials;
+    window.deposit = deposit;
+    window.redeemVoucher = redeemVoucher;
+    window.sendInquiry = sendInquiry;
+    window.loadDashboard = loadDashboard;
+    window.loadWallet = loadWallet;
+    window.loadPackages = loadPackages;
+    window.loadInquiries = loadInquiries;
+  </script>
+
+</body>
+</html>
