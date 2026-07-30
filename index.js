@@ -1,5 +1,5 @@
 // ============================================================
-//   BLACKLORD TECH – FULL BACKEND (no welcome bonus)
+//   BLACKLORD TECH – FULL BACKEND (fixed route order)
 // ============================================================
 'use strict';
 require('dotenv').config();
@@ -16,9 +16,10 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
+
+// ─── CORS & JSON ─────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
 
 // ─── SESSION & PASSPORT ─────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-change-me';
@@ -26,7 +27,7 @@ app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 1 day
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -118,28 +119,20 @@ passport.use(new GoogleStrategy({
         let userId = null;
         let user = null;
 
-        // Find by googleId
         for (const [id, u] of Object.entries(db.users)) {
             if (u.googleId === profile.id) {
-                userId = id;
-                user = u;
-                break;
+                userId = id; user = u; break;
             }
         }
-
         if (!user) {
-            // Find by email
             for (const [id, u] of Object.entries(db.users)) {
                 if (u.email === email) {
-                    userId = id;
-                    user = u;
-                    break;
+                    userId = id; user = u; break;
                 }
             }
         }
 
         if (!user) {
-            // Create new user – no welcome bonus
             userId = `user_${Date.now()}`;
             const firstName = profile.name?.givenName || email.split('@')[0];
             const lastName = profile.name?.familyName || '';
@@ -161,7 +154,6 @@ passport.use(new GoogleStrategy({
             saveDb();
             user = newUser;
         } else {
-            // Update googleId if missing
             if (!user.googleId) {
                 user.googleId = profile.id;
                 saveDb();
@@ -203,15 +195,10 @@ async function findPterodactylUser(username) {
     try {
         const response = await axios.get(
             `${PANEL_DOMAIN}/api/application/users?filter[email]=${username}@gmail.com`,
-            {
-                headers: { Authorization: `Bearer ${PANEL_APIKEY}` },
-                timeout: 10000,
-            }
+            { headers: { Authorization: `Bearer ${PANEL_APIKEY}` }, timeout: 10000 }
         );
         const users = response.data.data;
-        if (users && users.length > 0) {
-            return users[0].attributes.id;
-        }
+        if (users && users.length > 0) return users[0].attributes.id;
         return null;
     } catch (e) {
         return null;
@@ -222,113 +209,77 @@ async function createPterodactylPanel(username, ramMB, diskMB, cpuPercent, isAdm
     let existingUserId = await findPterodactylUser(username);
     let userId, userPassword = null;
 
-    if (existingUserId) {
-        userId = existingUserId;
-    } else {
+    if (!existingUserId) {
         userPassword = generatePassword(username);
-        try {
-            const userRes = await axios.post(
-                `${PANEL_DOMAIN}/api/application/users`,
-                {
-                    email: `${username}@gmail.com`,
-                    username: username,
-                    first_name: username,
-                    last_name: isAdmin ? 'Admin' : 'Panel',
-                    root_admin: isAdmin,
-                    language: 'en',
-                    password: userPassword,
-                },
-                {
-                    headers: { Authorization: `Bearer ${PANEL_APIKEY}`, 'Content-Type': 'application/json' },
-                    timeout: 15000,
-                }
-            );
-            userId = userRes.data.attributes.id;
-        } catch (e) {
-            throw new Error(`User creation failed: ${e.response?.data?.errors?.[0]?.detail || e.message}`);
+        const userRes = await axios.post(
+            `${PANEL_DOMAIN}/api/application/users`,
+            {
+                email: `${username}@gmail.com`,
+                username: username,
+                first_name: username,
+                last_name: isAdmin ? 'Admin' : 'Panel',
+                root_admin: isAdmin,
+                language: 'en',
+                password: userPassword,
+            },
+            { headers: { Authorization: `Bearer ${PANEL_APIKEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+        );
+        userId = userRes.data.attributes.id;
+    } else {
+        userId = existingUserId;
+    }
+
+    const allocRes = await axios.get(
+        `${PANEL_DOMAIN}/api/application/nodes/${PANEL_LOC}/allocations`,
+        { headers: { Authorization: `Bearer ${PANEL_APIKEY}` }, timeout: 15000 }
+    );
+    const alloc = allocRes.data.data.find(a => a.attributes.assigned === false);
+    if (!alloc) throw new Error('No available port');
+
+    const eggRes = await axios.get(
+        `${PANEL_DOMAIN}/api/application/nests/${PANEL_NEST}/eggs/${PANEL_EGG}?include=variables`,
+        { headers: { Authorization: `Bearer ${PANEL_APIKEY}` }, timeout: 15000 }
+    );
+    const egg = eggRes.data.attributes;
+    const env = {};
+    if (egg.relationships?.variables?.data) {
+        for (const v of egg.relationships.variables.data) {
+            const key = v.attributes.env_variable;
+            if (key) env[key] = v.attributes.default_value || '';
         }
     }
+    env.NODE_VERSION = '18';
+    env.INST = 'npm';
+    env.CMD_RUN = 'npm start';
 
-    let allocId;
-    try {
-        const allocRes = await axios.get(
-            `${PANEL_DOMAIN}/api/application/nodes/${PANEL_LOC}/allocations`,
-            {
-                headers: { Authorization: `Bearer ${PANEL_APIKEY}` },
-                timeout: 15000,
-            }
-        );
-        const alloc = allocRes.data.data.find(a => a.attributes.assigned === false);
-        if (!alloc) throw new Error('No available port');
-        allocId = alloc.attributes.id;
-    } catch (e) {
-        throw new Error(`Allocation error: ${e.message}`);
-    }
+    const serverData = {
+        name: `${username}-${isAdmin ? 'admin' : 'panel'}-${Date.now().toString().slice(-4)}`,
+        user: userId,
+        egg: PANEL_EGG,
+        docker_image: egg.docker_image || 'ghcr.io/parkervcp/yolks:nodejs_18',
+        startup: egg.startup || 'npm start',
+        environment: env,
+        skip_scripts: false,
+        limits: { memory: ramMB, swap: 0, disk: diskMB, io: 500, cpu: cpuPercent },
+        feature_limits: { databases: 1, backups: 1 },
+        allocation: { default: alloc.attributes.id },
+        deployment: { locations: [PANEL_LOC] },
+        start_on_completion: true,
+    };
 
-    let eggDetails;
-    try {
-        const eggRes = await axios.get(
-            `${PANEL_DOMAIN}/api/application/nests/${PANEL_NEST}/eggs/${PANEL_EGG}?include=variables`,
-            {
-                headers: { Authorization: `Bearer ${PANEL_APIKEY}` },
-                timeout: 15000,
-            }
-        );
-        eggDetails = eggRes.data.attributes;
-    } catch (e) {
-        throw new Error(`Failed to fetch egg details: ${e.message}`);
-    }
+    const srvRes = await axios.post(
+        `${PANEL_DOMAIN}/api/application/servers`,
+        serverData,
+        { headers: { Authorization: `Bearer ${PANEL_APIKEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
+    );
 
-    const environment = {};
-    if (eggDetails.relationships && eggDetails.relationships.variables && eggDetails.relationships.variables.data) {
-        for (const varData of eggDetails.relationships.variables.data) {
-            const varAttr = varData.attributes || varData;
-            const key = varAttr.env_variable;
-            if (key) {
-                environment[key] = varAttr.default_value || '';
-            }
-        }
-    }
-    environment.NODE_VERSION = '18';
-    environment.INST = 'npm';
-    environment.CMD_RUN = 'npm start';
-
-    try {
-        const serverData = {
-            name: `${username}-${isAdmin ? 'admin' : 'panel'}-${Date.now().toString().slice(-4)}`,
-            user: userId,
-            egg: PANEL_EGG,
-            docker_image: eggDetails.docker_image || 'ghcr.io/parkervcp/yolks:nodejs_18',
-            startup: eggDetails.startup || 'npm start',
-            environment: environment,
-            skip_scripts: false,
-            limits: { memory: ramMB, swap: 0, disk: diskMB, io: 500, cpu: cpuPercent },
-            feature_limits: { databases: 1, backups: 1 },
-            allocation: { default: allocId },
-            deployment: { locations: [PANEL_LOC] },
-            start_on_completion: true,
-        };
-
-        const srvRes = await axios.post(
-            `${PANEL_DOMAIN}/api/application/servers`,
-            serverData,
-            {
-                headers: { Authorization: `Bearer ${PANEL_APIKEY}`, 'Content-Type': 'application/json' },
-                timeout: 30000,
-            }
-        );
-
-        return {
-            username: username,
-            password: existingUserId ? null : userPassword,
-            domain: PANEL_DOMAIN,
-            serverId: srvRes.data.attributes.id,
-            reused: !!existingUserId,
-        };
-    } catch (e) {
-        const errorMsg = e.response?.data?.errors?.[0]?.detail || e.message;
-        throw new Error(`Server creation failed: ${errorMsg}`);
-    }
+    return {
+        username: username,
+        password: existingUserId ? null : userPassword,
+        domain: PANEL_DOMAIN,
+        serverId: srvRes.data.attributes.id,
+        reused: !!existingUserId,
+    };
 }
 
 // ─── AUTH ENDPOINTS ──────────────────────────────────────────
@@ -384,7 +335,6 @@ app.get('/api/me', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    // Auto-expire trial panels
     let changed = false;
     if (user.panels) {
         user.panels.forEach(p => {
@@ -438,7 +388,6 @@ app.post('/api/buy', authMiddleware, async (req, res) => {
     const { plan, ram, qty } = info;
     const finalQuantity = qty;
 
-    // Get total SD price from frontend (pre‑computed)
     const kshPrice = db.prices.panel[productId];
     if (!kshPrice) return res.status(400).json({ error: 'Price not configured' });
     const totalSdPrice = Math.round(kshPrice / 1.6);
@@ -463,14 +412,8 @@ app.post('/api/buy', authMiddleware, async (req, res) => {
         let finalUsername = username;
         if (finalQuantity > 1) finalUsername = `${username}${i}`;
         try {
-            const diskMB = ram === 0 ? 0 : ram * 2; // unlimited disk = 0
-            const panelResult = await createPterodactylPanel(
-                finalUsername,
-                ram,
-                diskMB,
-                40,
-                false
-            );
+            const diskMB = ram === 0 ? 0 : ram * 2;
+            const panelResult = await createPterodactylPanel(finalUsername, ram, diskMB, 40, false);
             const panelRecord = {
                 username: finalUsername,
                 password: panelResult.password || generatePassword(finalUsername),
@@ -508,13 +451,12 @@ app.post('/api/buy', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── CLAIM FREE TRIAL (5GB, 3 hours) ──────────────────────
+// ─── CLAIM FREE TRIAL ──────────────────────────────────────
 app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
     const userId = req.userId;
     const user = db.users[userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    // Check existing trial
     const existing = (user.panels || []).find(p => p.trial && p.status === 'active');
     if (existing) {
         if (new Date(existing.expiresAt) > new Date()) {
@@ -592,7 +534,6 @@ app.get('/api/admin/vouchers', authMiddleware, async (req, res) => {
     res.json({ vouchers: db.vouchers });
 });
 
-// ─── ADMIN ENDPOINTS ──────────────────────────────────────
 app.get('/api/admin/users', authMiddleware, (req, res) => {
     const user = db.users[req.userId];
     if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
@@ -624,7 +565,6 @@ app.get('/api/admin/logs', authMiddleware, (req, res) => {
     res.json({ logs: db.logs.slice(-200).reverse() });
 });
 
-// ─── PANEL MANAGEMENT ──────────────────────────────────────
 app.post('/api/toggle-panel', authMiddleware, async (req, res) => {
     const { username } = req.body;
     const user = db.users[req.userId];
@@ -649,7 +589,6 @@ app.post('/api/delete-panel', authMiddleware, async (req, res) => {
     res.json({ success: true });
 });
 
-// ─── BOT ENDPOINTS ──────────────────────────────────────────
 app.post('/api/deploy-bot', authMiddleware, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Bot name required' });
@@ -691,7 +630,6 @@ app.post('/api/delete-bot', authMiddleware, async (req, res) => {
     res.json({ success: true });
 });
 
-// ─── TOP-UP (simulated – replace with Paystack) ──────────
 app.post('/api/topup', authMiddleware, async (req, res) => {
     const { amountKsh } = req.body;
     if (!amountKsh || amountKsh < 8) return res.status(400).json({ error: 'Minimum 8 KSH' });
@@ -713,8 +651,16 @@ app.post('/api/topup', authMiddleware, async (req, res) => {
     res.json({ success: true, message: `Added ${sdAmount} SD`, sdBalance: user.sdBalance });
 });
 
-// ─── SERVE FRONTEND ──────────────────────────────────────────
-app.get('/', (req, res) => {
+// ─── FALLBACK: Return JSON for unknown API routes ──────────
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// ─── SERVE STATIC FILES (index.html, etc.) ─────────────────
+app.use(express.static(__dirname));
+
+// ─── CATCH-ALL: serve index.html for any other route ──────
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
