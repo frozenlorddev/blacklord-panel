@@ -254,60 +254,35 @@
             font-weight: 400;
         }
 
-        /* ─── USERNAME FORM ─── */
-        .username-form {
-            width: 100%;
-            max-width: 320px;
-            margin: 10px auto 0;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .username-form input {
-            width: 100%;
-            padding: 14px 20px;
-            border-radius: 60px;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 1rem;
-            text-align: center;
-            transition: 0.2s;
-        }
-        .username-form input:focus {
-            outline: none;
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
-        }
-        .username-form input::placeholder {
-            color: var(--text-secondary);
-            opacity: 0.7;
-        }
-        .username-form .btn-start {
+        /* ─── START BUTTON (no input) ─── */
+        .btn-start {
             background: var(--btn-primary);
             border: none;
             color: #fff;
-            padding: 14px;
+            padding: 16px 48px;
             border-radius: 60px;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             cursor: pointer;
             box-shadow: 0 4px 30px rgba(124, 58, 237, 0.5);
             transition: 0.25s;
+            margin-top: 10px;
+            min-width: 200px;
         }
-        .username-form .btn-start:hover {
-            transform: scale(1.03);
+        .btn-start:hover {
+            transform: scale(1.05);
             box-shadow: 0 6px 40px rgba(124, 58, 237, 0.7);
         }
-        .username-form .btn-start:disabled {
+        .btn-start:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
-        .username-form .error-msg {
+        .landing-error {
             color: #f87171;
             font-size: 0.9rem;
-            text-align: center;
+            margin-top: 12px;
+            min-height: 1.5rem;
         }
 
         /* ─── DASHBOARD ─── */
@@ -1300,12 +1275,9 @@
                 </span>
             </div>
 
-            <!-- ─── USERNAME FORM ─── -->
-            <form class="username-form" id="startForm" onsubmit="createAccount(event)">
-                <input type="text" id="usernameInput" placeholder="Choose a username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" />
-                <div id="startError" class="error-msg"></div>
-                <button type="submit" class="btn-start" id="startBtn">🚀 Get Started</button>
-            </form>
+            <!-- ─── SINGLE BUTTON: GET STARTED ─── -->
+            <button class="btn-start" id="startBtn" onclick="quickStart()">🚀 Get Started</button>
+            <div id="landingError" class="landing-error"></div>
         </div>
     </div>
 
@@ -1527,23 +1499,22 @@
     }
     function navTo(page) { showPage(page); }
 
-    // ─── CREATE ACCOUNT (username only) ──────────────────────────
-    async function createAccount(e) {
-        e.preventDefault();
-        const username = document.getElementById('usernameInput').value.trim();
-        const errorEl = document.getElementById('startError');
-        errorEl.textContent = '';
-        if (!username || username.length < 3) {
-            errorEl.textContent = '❌ Username must be at least 3 characters.';
-            return;
-        }
-        if (!/^[A-Za-z0-9_]+$/.test(username)) {
-            errorEl.textContent = '❌ Only letters, numbers, and underscore allowed.';
-            return;
-        }
+    // ─── QUICK START (auto‑generate username) ────────────────────
+    async function quickStart() {
         const btn = document.getElementById('startBtn');
+        const errorEl = document.getElementById('landingError');
+        errorEl.textContent = '';
         btn.disabled = true;
         btn.textContent = '⏳ Creating account...';
+
+        // Generate a random username
+        const adjectives = ['Happy', 'Brave', 'Clever', 'Wise', 'Swift', 'Bold', 'Bright', 'Calm', 'Eager', 'Fierce', 'Mighty', 'Noble', 'Royal', 'Silver', 'Golden'];
+        const nouns = ['Panther', 'Eagle', 'Wolf', 'Tiger', 'Falcon', 'Shark', 'Dragon', 'Phoenix', 'Lion', 'Fox', 'Hawk', 'Owl', 'Bear', 'Horse'];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        const rand = Math.floor(Math.random() * 1000);
+        const username = `${adj}${noun}${rand}`;
+
         try {
             const res = await fetch(`${API_BASE}/api/create-account`, {
                 method: 'POST',
@@ -1551,7 +1522,9 @@
                 body: JSON.stringify({ username })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create account');
+            if (!res.ok) {
+                throw new Error(data.error || 'Account creation failed');
+            }
             token = data.token;
             localStorage.setItem('blacklord_token', token);
             currentUser = data.user;
@@ -1571,6 +1544,10 @@
         currentUser = null;
         showPage('landing');
         showToast('Logged out');
+        const btn = document.getElementById('startBtn');
+        if (btn) { btn.disabled = false; btn.textContent = '🚀 Get Started'; }
+        const err = document.getElementById('landingError');
+        if (err) err.textContent = '';
     }
 
     // ─── DASHBOARD LOAD ────────────────────────────────────────────
