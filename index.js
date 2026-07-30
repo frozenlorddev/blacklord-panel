@@ -1,5 +1,5 @@
 // ============================================================
-//   BLACKLORD TECH – FULL BACKEND (with hardcoded M-PESA keys)
+//   BLACKLORD TECH – FULL BACKEND (username‑only sign‑up)
 // ============================================================
 'use strict';
 require('dotenv').config();
@@ -44,13 +44,13 @@ const PANEL_EGG   = parseInt(process.env.PANEL_EGG) || 15;
 const PANEL_NEST  = parseInt(process.env.PANEL_NEST) || 5;
 const PANEL_LOC   = parseInt(process.env.PANEL_LOC) || 1;
 
-// ─── M-PESA Credentials (hardcoded from your screenshot) ────
-const MPESA_CONSUMER_KEY = 'jGKXzACgyY3MEcjrGxh4XHsci2xddAwpy1AnbxeOeDGUgn6r';
-const MPESA_CONSUMER_SECRET = 'S4uqZ8MHGvXuR5ISRFL9stApUSHbqwzw1FnMm6TVAxbGujHxNL4rVmdCMcbvsRQ9';
-const MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
-const MPESA_SHORTCODE = '174379'; // Sandbox default
+// ─── M-PESA Credentials (hardcoded – replace with your .env if preferred) ───
+const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || 'jGKXzACgyY3MEcjrGxh4XHsci2xddAwpy1AnbxeOeDGUgn6r';
+const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || 'S4uqZ8MHGvXuR5ISRFL9stApUSHbqwzw1FnMm6TVAxbGujHxNL4rVmdCMcbvsRQ9';
+const MPESA_PASSKEY = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || '174379';
 const MPESA_CALLBACK_URL = process.env.MPESA_CALLBACK_URL || `http://localhost:${PORT}/api/mpesa/callback`;
-const MPESA_ENV = process.env.MPESA_ENV || 'sandbox'; // or 'production'
+const MPESA_ENV = process.env.MPESA_ENV || 'sandbox';
 
 // ─── Database ──────────────────────────────────────────────────
 const DB_PATH = path.join(__dirname, 'database.json');
@@ -116,89 +116,22 @@ function addLog(userId, action, details = {}) {
     saveDb();
 }
 
-// ─── Google OAuth Strategy ──────────────────────────────────
+// ─── Google OAuth (optional – keep for compatibility, not used) ──
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
     callbackURL: `${process.env.BASE_URL || 'http://localhost:3002'}/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
-    try {
-        const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-        if (!email) return done(new Error('No email from Google'), null);
-
-        let userId = null;
-        let user = null;
-
-        for (const [id, u] of Object.entries(db.users)) {
-            if (u.googleId === profile.id) {
-                userId = id; user = u; break;
-            }
-        }
-        if (!user) {
-            for (const [id, u] of Object.entries(db.users)) {
-                if (u.email === email) {
-                    userId = id; user = u; break;
-                }
-            }
-        }
-
-        if (!user) {
-            userId = `user_${Date.now()}`;
-            const firstName = profile.name?.givenName || email.split('@')[0];
-            const lastName = profile.name?.familyName || '';
-            const newUser = {
-                email,
-                firstName,
-                lastName,
-                googleId: profile.id,
-                passwordHash: null,
-                sdBalance: 0, // No welcome bonus
-                panels: [],
-                bots: [],
-                referralsCount: 0,
-                referralCode: generateReferralCode(),
-                registeredAt: new Date().toISOString(),
-                voucherRedemptions: [],
-            };
-            db.users[userId] = newUser;
-            saveDb();
-            user = newUser;
-        } else {
-            if (!user.googleId) {
-                user.googleId = profile.id;
-                saveDb();
-            }
-        }
-
-        const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-        return done(null, { userId, token, user });
-    } catch (err) {
-        return done(err, null);
-    }
+    // Not used in username-only flow
+    done(null, {});
 }));
+passport.serializeUser((data, done) => done(null, data));
+passport.deserializeUser((obj, done) => done(null, obj));
 
-passport.serializeUser((data, done) => {
-    done(null, { userId: data.userId, token: data.token });
-});
-passport.deserializeUser((obj, done) => {
-    done(null, obj);
-});
-
-// ─── Google OAuth Routes ──────────────────────────────────────
-app.get('/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-);
-app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
-    (req, res) => {
-        const { token } = req.user;
-        const frontendUrl = process.env.FRONTEND_URL || '/';
-        res.redirect(`${frontendUrl}?token=${token}`);
-    }
-);
-app.get('/auth/google/failure', (req, res) => {
-    res.status(401).send('Google login failed');
-});
+// ─── Google routes (optional) ───────────────────────────────────
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/'));
+app.get('/auth/google/failure', (req, res) => res.send('Google login failed'));
 
 // ─── Pterodactyl Helpers ────────────────────────────────────
 async function findPterodactylUser(username) {
@@ -348,29 +281,35 @@ async function stkPush(phone, amount, accountReference, transactionDesc) {
 
 // ─── API Routes ───────────────────────────────────────────────
 
-// Health check
+// ─── Health ──────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Signup
-app.post('/api/signup', async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
+// ─── CREATE ACCOUNT (username only) ──────────────────────────
+app.post('/api/create-account', async (req, res) => {
+    const { username } = req.body;
+    if (!username || username.length < 3) {
+        return res.status(400).json({ error: 'Username must be at least 3 characters' });
     }
-    const existing = Object.values(db.users).find(u => u.email === email);
+    if (!/^[A-Za-z0-9_]+$/.test(username)) {
+        return res.status(400).json({ error: 'Only letters, numbers, and underscore allowed' });
+    }
+
+    // Check if username already exists (case-insensitive)
+    const existing = Object.values(db.users).find(u => u.firstName.toLowerCase() === username.toLowerCase());
     if (existing) {
-        return res.status(400).json({ error: 'Email already registered' });
+        return res.status(400).json({ error: 'Username already taken' });
     }
-    const hashed = await bcrypt.hash(password, 10);
+
     const userId = `user_${Date.now()}`;
-    db.users[userId] = {
-        email,
-        firstName,
-        lastName,
-        passwordHash: hashed,
-        sdBalance: 0, // No welcome bonus
+    const dummyEmail = `${username}@blacklord.local`;
+    const newUser = {
+        email: dummyEmail,
+        firstName: username,
+        lastName: '',
+        passwordHash: null,
+        sdBalance: 0,
         panels: [],
         bots: [],
         referralsCount: 0,
@@ -378,40 +317,22 @@ app.post('/api/signup', async (req, res) => {
         registeredAt: new Date().toISOString(),
         voucherRedemptions: [],
     };
+    db.users[userId] = newUser;
     saveDb();
-    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { email, firstName, lastName, sdBalance: 0, totalServers: 0 } });
-});
 
-// Login
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
-    }
-    const userEntry = Object.entries(db.users).find(([id, u]) => u.email === email);
-    if (!userEntry) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    const userId = userEntry[0];
-    const user = userEntry[1];
-    if (user.passwordHash && !(await bcrypt.compare(password, user.passwordHash))) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
     const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        sdBalance: user.sdBalance || 0,
-        totalServers: (user.panels || []).length + (user.bots || []).length,
-        activeServers: (user.panels || []).filter(p => p.status === 'active').length +
-                       (user.bots || []).filter(b => b.status === 'active').length,
-        referralsCount: user.referralsCount || 0,
+        email: dummyEmail,
+        firstName: username,
+        lastName: '',
+        sdBalance: 0,
+        totalServers: 0,
+        activeServers: 0,
+        referralsCount: 0,
     }});
 });
 
-// Get current user
+// ─── GET CURRENT USER ──────────────────────────────────────────
 app.get('/api/me', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
@@ -445,7 +366,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── Buy Panel (with bundles) ────────────────────────────────
+// ─── BUY PANEL (with bundles) ────────────────────────────────
 const PLAN_MAP = {
     '5gb':       { plan: '5gb', ram: 5120, qty: 1 },
     'unlimited': { plan: 'unlimited', ram: 0, qty: 1 },
@@ -533,7 +454,7 @@ app.post('/api/buy', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── Claim Free Trial ──────────────────────────────────────────
+// ─── CLAIM FREE TRIAL ──────────────────────────────────────────
 app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
     const userId = req.userId;
     const user = db.users[userId];
@@ -580,75 +501,7 @@ app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
     }
 });
 
-// ─── Vouchers ──────────────────────────────────────────────────
-app.post('/api/redeem-voucher', authMiddleware, async (req, res) => {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ error: 'Voucher code required' });
-    const voucher = db.vouchers.find(v => v.code === code.toUpperCase() && !v.usedBy);
-    if (!voucher) return res.status(404).json({ error: 'Invalid or already used voucher' });
-    const user = db.users[req.userId];
-    if (!user) return res.status(401).json({ error: 'User not found' });
-    user.sdBalance = (user.sdBalance || 0) + voucher.sdAmount;
-    voucher.usedBy = req.userId;
-    voucher.usedAt = new Date().toISOString();
-    if (!user.voucherRedemptions) user.voucherRedemptions = [];
-    user.voucherRedemptions.push({ code: voucher.code, amount: voucher.sdAmount, redeemedAt: new Date().toISOString() });
-    saveDb();
-    addLog(req.userId, 'redeem_voucher', { code, sdAmount: voucher.sdAmount });
-    res.json({ success: true, message: `Redeemed ${voucher.sdAmount} SD`, sdAmount: voucher.sdAmount });
-});
-
-app.post('/api/admin/generate-voucher', authMiddleware, async (req, res) => {
-    const user = db.users[req.userId];
-    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
-    const { sdAmount } = req.body;
-    if (!sdAmount || sdAmount < 1) return res.status(400).json({ error: 'Invalid SD amount' });
-    const code = 'VOUCHER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    db.vouchers.push({ code, sdAmount: parseInt(sdAmount), usedBy: null, createdAt: new Date().toISOString() });
-    saveDb();
-    addLog(req.userId, 'generate_voucher', { code, sdAmount });
-    res.json({ success: true, code, sdAmount });
-});
-
-app.get('/api/admin/vouchers', authMiddleware, async (req, res) => {
-    const user = db.users[req.userId];
-    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
-    res.json({ vouchers: db.vouchers });
-});
-
-// ─── Admin Endpoints ──────────────────────────────────────────
-app.get('/api/admin/users', authMiddleware, (req, res) => {
-    const user = db.users[req.userId];
-    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
-    const users = Object.entries(db.users).map(([id, u]) => ({
-        id,
-        email: u.email,
-        name: u.firstName + ' ' + u.lastName,
-        sdBalance: u.sdBalance || 0,
-        totalServers: (u.panels || []).length + (u.bots || []).length,
-        registeredAt: u.registeredAt
-    }));
-    res.json({ users });
-});
-
-app.post('/api/admin/adjust-balance', authMiddleware, (req, res) => {
-    const admin = db.users[req.userId];
-    if (!admin || admin.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
-    const { userId, amount } = req.body;
-    if (!db.users[userId]) return res.status(404).json({ error: 'User not found' });
-    db.users[userId].sdBalance = (db.users[userId].sdBalance || 0) + amount;
-    addLog(userId, 'admin_adjust_balance', { by: req.userId, amount });
-    saveDb();
-    res.json({ success: true, newBalance: db.users[userId].sdBalance });
-});
-
-app.get('/api/admin/logs', authMiddleware, (req, res) => {
-    const user = db.users[req.userId];
-    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
-    res.json({ logs: db.logs.slice(-200).reverse() });
-});
-
-// ─── Panel & Bot Management ──────────────────────────────────
+// ─── PANEL MANAGEMENT ──────────────────────────────────────────
 app.post('/api/toggle-panel', authMiddleware, async (req, res) => {
     const { username } = req.body;
     const user = db.users[req.userId];
@@ -673,6 +526,7 @@ app.post('/api/delete-panel', authMiddleware, async (req, res) => {
     res.json({ success: true });
 });
 
+// ─── BOT MANAGEMENT ────────────────────────────────────────────
 app.post('/api/deploy-bot', authMiddleware, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Bot name required' });
@@ -714,8 +568,76 @@ app.post('/api/delete-bot', authMiddleware, async (req, res) => {
     res.json({ success: true });
 });
 
-// ─── M-PESA Top-up Endpoints ─────────────────────────────────
+// ─── VOUCHER SYSTEM ────────────────────────────────────────────
+app.post('/api/redeem-voucher', authMiddleware, async (req, res) => {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Voucher code required' });
+    const voucher = db.vouchers.find(v => v.code === code.toUpperCase() && !v.usedBy);
+    if (!voucher) return res.status(404).json({ error: 'Invalid or already used voucher' });
+    const user = db.users[req.userId];
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    user.sdBalance = (user.sdBalance || 0) + voucher.sdAmount;
+    voucher.usedBy = req.userId;
+    voucher.usedAt = new Date().toISOString();
+    if (!user.voucherRedemptions) user.voucherRedemptions = [];
+    user.voucherRedemptions.push({ code: voucher.code, amount: voucher.sdAmount, redeemedAt: new Date().toISOString() });
+    saveDb();
+    addLog(req.userId, 'redeem_voucher', { code, sdAmount: voucher.sdAmount });
+    res.json({ success: true, message: `Redeemed ${voucher.sdAmount} SD`, sdAmount: voucher.sdAmount });
+});
 
+// ─── ADMIN VOUCHER GENERATION ──────────────────────────────────
+app.post('/api/admin/generate-voucher', authMiddleware, async (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const { sdAmount } = req.body;
+    if (!sdAmount || sdAmount < 1) return res.status(400).json({ error: 'Invalid SD amount' });
+    const code = 'VOUCHER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    db.vouchers.push({ code, sdAmount: parseInt(sdAmount), usedBy: null, createdAt: new Date().toISOString() });
+    saveDb();
+    addLog(req.userId, 'generate_voucher', { code, sdAmount });
+    res.json({ success: true, code, sdAmount });
+});
+
+app.get('/api/admin/vouchers', authMiddleware, async (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    res.json({ vouchers: db.vouchers });
+});
+
+// ─── ADMIN ENDPOINTS ──────────────────────────────────────────
+app.get('/api/admin/users', authMiddleware, (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const users = Object.entries(db.users).map(([id, u]) => ({
+        id,
+        email: u.email,
+        name: u.firstName + ' ' + u.lastName,
+        sdBalance: u.sdBalance || 0,
+        totalServers: (u.panels || []).length + (u.bots || []).length,
+        registeredAt: u.registeredAt
+    }));
+    res.json({ users });
+});
+
+app.post('/api/admin/adjust-balance', authMiddleware, (req, res) => {
+    const admin = db.users[req.userId];
+    if (!admin || admin.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const { userId, amount } = req.body;
+    if (!db.users[userId]) return res.status(404).json({ error: 'User not found' });
+    db.users[userId].sdBalance = (db.users[userId].sdBalance || 0) + amount;
+    addLog(userId, 'admin_adjust_balance', { by: req.userId, amount });
+    saveDb();
+    res.json({ success: true, newBalance: db.users[userId].sdBalance });
+});
+
+app.get('/api/admin/logs', authMiddleware, (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    res.json({ logs: db.logs.slice(-200).reverse() });
+});
+
+// ─── M-PESA TOP-UP ─────────────────────────────────────────────
 app.post('/api/topup', authMiddleware, async (req, res) => {
     const { amountKsh, phone } = req.body;
     if (!amountKsh || amountKsh < 8) {
@@ -766,7 +688,7 @@ app.post('/api/topup', authMiddleware, async (req, res) => {
     }
 });
 
-// M-PESA Callback
+// ─── M-PESA CALLBACK ──────────────────────────────────────────
 app.post('/api/mpesa/callback', async (req, res) => {
     const callbackData = req.body;
     console.log('M-PESA Callback received:', JSON.stringify(callbackData, null, 2));
@@ -824,21 +746,19 @@ app.post('/api/mpesa/callback', async (req, res) => {
     }
 });
 
-// ─── Static files & fallback ──────────────────────────────────
+// ─── STATIC FILES & FALLBACK ──────────────────────────────────
 app.use(express.static(__dirname));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ─── Start Server ──────────────────────────────────────────────
+// ─── START SERVER ──────────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
     console.log(`📍 Open http://localhost:${PORT} in your browser`);
     if (!PANEL_DOMAIN || !PANEL_APIKEY) {
         console.warn('⚠️  PANEL_DOMAIN or PANEL_APIKEY not set. Panel creation will fail.');
     }
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-        console.warn('⚠️  Google OAuth credentials not set. Google login will not work.');
-    }
     console.log('✅ M-PESA Sandbox keys are hardcoded and ready.');
+    console.log('✅ Username-only sign-up enabled (no password, no Google).');
 });
