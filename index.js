@@ -1,5 +1,6 @@
 // ============================================================
 //   BLACKLORD TECH – FULL BACKEND (username‑only sign‑up)
+//   FIX: API routes before static files, with JSON fallback
 // ============================================================
 'use strict';
 require('dotenv').config();
@@ -44,7 +45,7 @@ const PANEL_EGG   = parseInt(process.env.PANEL_EGG) || 15;
 const PANEL_NEST  = parseInt(process.env.PANEL_NEST) || 5;
 const PANEL_LOC   = parseInt(process.env.PANEL_LOC) || 1;
 
-// ─── M-PESA Credentials (hardcoded – replace with your .env if preferred) ───
+// ─── M-PESA Credentials ──────────────────────────────────────
 const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || 'jGKXzACgyY3MEcjrGxh4XHsci2xddAwpy1AnbxeOeDGUgn6r';
 const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || 'S4uqZ8MHGvXuR5ISRFL9stApUSHbqwzw1FnMm6TVAxbGujHxNL4rVmdCMcbvsRQ9';
 const MPESA_PASSKEY = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
@@ -116,19 +117,17 @@ function addLog(userId, action, details = {}) {
     saveDb();
 }
 
-// ─── Google OAuth (optional – keep for compatibility, not used) ──
+// ─── Google OAuth (optional – not used in username-only flow) ──
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
     callbackURL: `${process.env.BASE_URL || 'http://localhost:3002'}/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
-    // Not used in username-only flow
     done(null, {});
 }));
 passport.serializeUser((data, done) => done(null, data));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-// ─── Google routes (optional) ───────────────────────────────────
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/'));
 app.get('/auth/google/failure', (req, res) => res.send('Google login failed'));
@@ -279,15 +278,11 @@ async function stkPush(phone, amount, accountReference, transactionDesc) {
     }
 }
 
-// ─── API Routes ───────────────────────────────────────────────
-
-// ─── Health ──────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+// ─── ⚠️ IMPORTANT: API RULES BEFORE STATIC FILES ─────────────
 
 // ─── CREATE ACCOUNT (username only) ──────────────────────────
 app.post('/api/create-account', async (req, res) => {
+    console.log('🔹 /api/create-account called with:', req.body); // Debug log
     const { username } = req.body;
     if (!username || username.length < 3) {
         return res.status(400).json({ error: 'Username must be at least 3 characters' });
@@ -296,7 +291,6 @@ app.post('/api/create-account', async (req, res) => {
         return res.status(400).json({ error: 'Only letters, numbers, and underscore allowed' });
     }
 
-    // Check if username already exists (case-insensitive)
     const existing = Object.values(db.users).find(u => u.firstName.toLowerCase() === username.toLowerCase());
     if (existing) {
         return res.status(400).json({ error: 'Username already taken' });
@@ -332,12 +326,16 @@ app.post('/api/create-account', async (req, res) => {
     }});
 });
 
+// ─── Health ──────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // ─── GET CURRENT USER ──────────────────────────────────────────
 app.get('/api/me', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    // Auto-expire trial panels
     let changed = false;
     if (user.panels) {
         user.panels.forEach(p => {
@@ -746,7 +744,12 @@ app.post('/api/mpesa/callback', async (req, res) => {
     }
 });
 
-// ─── STATIC FILES & FALLBACK ──────────────────────────────────
+// ─── ⚠️ FALLBACK: If any /api/* route is not found, return JSON error ──
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// ─── STATIC FILES & CATCH-ALL ──────────────────────────────────
 app.use(express.static(__dirname));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -761,4 +764,5 @@ app.listen(PORT, () => {
     }
     console.log('✅ M-PESA Sandbox keys are hardcoded and ready.');
     console.log('✅ Username-only sign-up enabled (no password, no Google).');
+    console.log('🔹 Check that /api/create-account is defined.');
 });
