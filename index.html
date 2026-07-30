@@ -1799,14 +1799,12 @@
         }
 
         // ─── HANDLE GOOGLE CALLBACK ────────────────────────────────────
-        // This function is called from the backend redirect (or we can check the URL params)
         async function handleGoogleCallback() {
             const params = new URLSearchParams(window.location.search);
             const tokenParam = params.get('token');
             if (tokenParam) {
                 token = tokenParam;
                 localStorage.setItem('blacklord_token', token);
-                // Fetch user data
                 try {
                     const res = await fetch(`${API_BASE}/api/me`, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -1820,7 +1818,6 @@
                         logoutUser();
                     }
                 } catch (e) { logoutUser(); }
-                // Clean URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -1890,7 +1887,6 @@
                         });
                     });
                 }
-                // Add voucher redemption activities if any
                 if (currentUser.voucherRedemptions) {
                     currentUser.voucherRedemptions.forEach(v => {
                         activities.push({
@@ -2533,7 +2529,6 @@
             // Check for Google OAuth callback
             handleGoogleCallback();
 
-            // Set admin email from localStorage or default
             if (!localStorage.getItem('blacklord_admin_email')) {
                 localStorage.setItem('blacklord_admin_email', 'admin@blacklordtech.com');
             }
@@ -2555,6 +2550,16 @@
             }
             document.getElementById('dateDisplay').textContent =
                 new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        })();
+
+        // ─── GOOGLE OAUTH FALLBACK: if backend redirects with error ───
+        (function checkGoogleError() {
+            const params = new URLSearchParams(window.location.search);
+            const error = params.get('error');
+            if (error) {
+                showToast('❌ Google login failed: ' + error, 'fa-exclamation-circle', '#f87171');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         })();
     </script>
 </body>
