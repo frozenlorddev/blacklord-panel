@@ -1,6 +1,5 @@
 // ============================================================
-//   BLACKLORD TECH – FULL BACKEND (username‑only sign‑up)
-//   FIX: API routes before static files, with JSON fallback
+//   BLACKLORD TECH – DEBUG (with test endpoint)
 // ============================================================
 'use strict';
 require('dotenv').config();
@@ -278,11 +277,19 @@ async function stkPush(phone, amount, accountReference, transactionDesc) {
     }
 }
 
-// ─── ⚠️ IMPORTANT: API RULES BEFORE STATIC FILES ─────────────
+// =============================================================
+//  ⚠️ ALL API ROUTES GO HERE (BEFORE STATIC FILES)
+// =============================================================
 
-// ─── CREATE ACCOUNT (username only) ──────────────────────────
+// ─── TEST ENDPOINT (to verify API works) ──────────────────────
+app.get('/api/test', (req, res) => {
+    console.log('✅ /api/test called');
+    res.json({ status: 'OK', message: 'Test endpoint works' });
+});
+
+// ─── CREATE ACCOUNT ──────────────────────────────────────────
 app.post('/api/create-account', async (req, res) => {
-    console.log('🔹 /api/create-account called with:', req.body); // Debug log
+    console.log('🔹 /api/create-account called with:', req.body);
     const { username } = req.body;
     if (!username || username.length < 3) {
         return res.status(400).json({ error: 'Username must be at least 3 characters' });
@@ -364,7 +371,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── BUY PANEL (with bundles) ────────────────────────────────
+// ─── BUY PANEL ────────────────────────────────────────────────
 const PLAN_MAP = {
     '5gb':       { plan: '5gb', ram: 5120, qty: 1 },
     'unlimited': { plan: 'unlimited', ram: 0, qty: 1 },
@@ -584,7 +591,6 @@ app.post('/api/redeem-voucher', authMiddleware, async (req, res) => {
     res.json({ success: true, message: `Redeemed ${voucher.sdAmount} SD`, sdAmount: voucher.sdAmount });
 });
 
-// ─── ADMIN VOUCHER GENERATION ──────────────────────────────────
 app.post('/api/admin/generate-voucher', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
@@ -746,6 +752,7 @@ app.post('/api/mpesa/callback', async (req, res) => {
 
 // ─── ⚠️ FALLBACK: If any /api/* route is not found, return JSON error ──
 app.use('/api/*', (req, res) => {
+    console.log('❌ API route not found:', req.method, req.originalUrl);
     res.status(404).json({ error: 'API endpoint not found' });
 });
 
@@ -759,10 +766,8 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
     console.log(`📍 Open http://localhost:${PORT} in your browser`);
+    console.log('🔹 Test the API at http://localhost:3002/api/test');
     if (!PANEL_DOMAIN || !PANEL_APIKEY) {
         console.warn('⚠️  PANEL_DOMAIN or PANEL_APIKEY not set. Panel creation will fail.');
     }
-    console.log('✅ M-PESA Sandbox keys are hardcoded and ready.');
-    console.log('✅ Username-only sign-up enabled (no password, no Google).');
-    console.log('🔹 Check that /api/create-account is defined.');
 });
