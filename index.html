@@ -2520,28 +2520,31 @@
             }
         }
 
-        // ─── TOP-UP ─────────────────────────────────────────────────────
+        // ─── TOP-UP (M-PESA) ──────────────────────────────────────────
         async function topUpSD() {
             if (!token) { showToast('Please log in first', 'fa-exclamation-circle', '#f87171'); return; }
-            const amount = prompt('Enter amount in KSH (5 SD = 8 KSH):', '8');
+            const amount = prompt('Enter amount in KSH (minimum 8):', '8');
             if (amount === null) return;
             const ksh = parseFloat(amount);
-            if (isNaN(ksh) || ksh < 8) { showToast('Minimum top-up is 8 KSH (5 SD)', 'fa-exclamation-circle',
-                '#f87171'); return; }
+            if (isNaN(ksh) || ksh < 8) {
+                showToast('Minimum top-up is 8 KSH', 'fa-exclamation-circle', '#f87171');
+                return;
+            }
+            const phone = prompt('Enter your M-PESA phone number (format: 2547XXXXXXXX):', '2547');
+            if (!phone || !/^254[0-9]{9}$/.test(phone)) {
+                showToast('Invalid phone number. Use format 2547XXXXXXXX', 'fa-exclamation-circle', '#f87171');
+                return;
+            }
             try {
                 const res = await fetch(`${API_BASE}/api/topup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ amountKsh: ksh })
+                    body: JSON.stringify({ amountKsh: ksh, phone })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Top-up failed');
-                if (data.authorization_url) {
-                    window.location.href = data.authorization_url;
-                } else {
-                    showToast(`✅ ${data.message || 'Top-up successful!'}`, 'fa-check-circle', '#34d399');
-                    loadDashboard();
-                }
+                showToast('✅ STK Push sent! Check your phone and enter PIN.', 'fa-check-circle', '#34d399');
+                loadDashboard();
             } catch (e) {
                 showToast(e.message, 'fa-exclamation-circle', '#f87171');
             }
@@ -2716,6 +2719,5 @@
                 new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         })();
     </script>
-
 </body>
 </html>

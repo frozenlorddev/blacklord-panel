@@ -1,5 +1,5 @@
 // ============================================================
-//   BLACKLORD TECH – FULL BACKEND (fixed route order)
+//   BLACKLORD TECH – FULL BACKEND (with hardcoded M-PESA keys)
 // ============================================================
 'use strict';
 require('dotenv').config();
@@ -17,11 +17,12 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 
-// ─── CORS & JSON ─────────────────────────────────────────────
+// ─── Middleware ──────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ─── SESSION & PASSPORT ─────────────────────────────────────
+// ─── Session & Passport ──────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-change-me';
 app.use(session({
     secret: SESSION_SECRET,
@@ -32,7 +33,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ─── CONFIG ──────────────────────────────────────────────────
+// ─── Config ──────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 const PORT = process.env.PORT || 3002;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@blacklordtech.com';
@@ -43,7 +44,15 @@ const PANEL_EGG   = parseInt(process.env.PANEL_EGG) || 15;
 const PANEL_NEST  = parseInt(process.env.PANEL_NEST) || 5;
 const PANEL_LOC   = parseInt(process.env.PANEL_LOC) || 1;
 
-// ─── DATABASE ──────────────────────────────────────────────
+// ─── M-PESA Credentials (hardcoded from your screenshot) ────
+const MPESA_CONSUMER_KEY = 'jGKXzACgyY3MEcjrGxh4XHsci2xddAwpy1AnbxeOeDGUgn6r';
+const MPESA_CONSUMER_SECRET = 'S4uqZ8MHGvXuR5ISRFL9stApUSHbqwzw1FnMm6TVAxbGujHxNL4rVmdCMcbvsRQ9';
+const MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+const MPESA_SHORTCODE = '174379'; // Sandbox default
+const MPESA_CALLBACK_URL = process.env.MPESA_CALLBACK_URL || `http://localhost:${PORT}/api/mpesa/callback`;
+const MPESA_ENV = process.env.MPESA_ENV || 'sandbox'; // or 'production'
+
+// ─── Database ──────────────────────────────────────────────────
 const DB_PATH = path.join(__dirname, 'database.json');
 let db = {
     users: {},
@@ -59,6 +68,7 @@ let db = {
     },
     vouchers: [],
     logs: [],
+    pendingPayments: [],
 };
 function loadDb() {
     try {
@@ -73,7 +83,7 @@ function saveDb() {
 }
 loadDb();
 
-// ─── HELPERS ────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────
 function generateReferralCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -106,7 +116,7 @@ function addLog(userId, action, details = {}) {
     saveDb();
 }
 
-// ─── PASSPORT GOOGLE STRATEGY ──────────────────────────────
+// ─── Google OAuth Strategy ──────────────────────────────────
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -137,12 +147,12 @@ passport.use(new GoogleStrategy({
             const firstName = profile.name?.givenName || email.split('@')[0];
             const lastName = profile.name?.familyName || '';
             const newUser = {
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
+                email,
+                firstName,
+                lastName,
                 googleId: profile.id,
                 passwordHash: null,
-                sdBalance: 0, // ❌ no welcome bonus
+                sdBalance: 0, // No welcome bonus
                 panels: [],
                 bots: [],
                 referralsCount: 0,
@@ -174,14 +184,14 @@ passport.deserializeUser((obj, done) => {
     done(null, obj);
 });
 
-// ─── GOOGLE OAUTH ROUTES ────────────────────────────────────
+// ─── Google OAuth Routes ──────────────────────────────────────
 app.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
     (req, res) => {
-        const { token, userId, user } = req.user;
+        const { token } = req.user;
         const frontendUrl = process.env.FRONTEND_URL || '/';
         res.redirect(`${frontendUrl}?token=${token}`);
     }
@@ -190,7 +200,7 @@ app.get('/auth/google/failure', (req, res) => {
     res.status(401).send('Google login failed');
 });
 
-// ─── PTERODACTYL HELPERS ──────────────────────────────────
+// ─── Pterodactyl Helpers ────────────────────────────────────
 async function findPterodactylUser(username) {
     try {
         const response = await axios.get(
@@ -282,12 +292,77 @@ async function createPterodactylPanel(username, ramMB, diskMB, cpuPercent, isAdm
     };
 }
 
-// ─── AUTH ENDPOINTS ──────────────────────────────────────────
+// ─── M-PESA Helpers ──────────────────────────────────────────
+async function getMpesaAccessToken() {
+    const auth = Buffer.from(`${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`).toString('base64');
+    const url = MPESA_ENV === 'sandbox'
+        ? 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+        : 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+    try {
+        const response = await axios.get(url, {
+            headers: { Authorization: `Basic ${auth}` }
+        });
+        return response.data.access_token;
+    } catch (error) {
+        console.error('M-PESA access token error:', error.response?.data || error.message);
+        throw new Error('Failed to get M-PESA access token');
+    }
+}
+
+async function stkPush(phone, amount, accountReference, transactionDesc) {
+    const accessToken = await getMpesaAccessToken();
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+    const password = Buffer.from(`${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`).toString('base64');
+
+    const url = MPESA_ENV === 'sandbox'
+        ? 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+        : 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+
+    const data = {
+        BusinessShortCode: MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: 'CustomerPayBillOnline',
+        Amount: amount,
+        PartyA: phone,
+        PartyB: MPESA_SHORTCODE,
+        PhoneNumber: phone,
+        CallBackURL: MPESA_CALLBACK_URL,
+        AccountReference: accountReference || 'BLACKLORD',
+        TransactionDesc: transactionDesc || 'SD Top-up',
+    };
+
+    try {
+        const response = await axios.post(url, data, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('STK Push error:', error.response?.data || error.message);
+        throw new Error('STK Push request failed');
+    }
+}
+
+// ─── API Routes ───────────────────────────────────────────────
+
+// Health check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Signup
 app.post('/api/signup', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
     const existing = Object.values(db.users).find(u => u.email === email);
-    if (existing) return res.status(400).json({ error: 'Email already registered' });
+    if (existing) {
+        return res.status(400).json({ error: 'Email already registered' });
+    }
     const hashed = await bcrypt.hash(password, 10);
     const userId = `user_${Date.now()}`;
     db.users[userId] = {
@@ -295,7 +370,7 @@ app.post('/api/signup', async (req, res) => {
         firstName,
         lastName,
         passwordHash: hashed,
-        sdBalance: 0, // ❌ no welcome bonus
+        sdBalance: 0, // No welcome bonus
         panels: [],
         bots: [],
         referralsCount: 0,
@@ -308,11 +383,16 @@ app.post('/api/signup', async (req, res) => {
     res.json({ token, user: { email, firstName, lastName, sdBalance: 0, totalServers: 0 } });
 });
 
+// Login
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
     const userEntry = Object.entries(db.users).find(([id, u]) => u.email === email);
-    if (!userEntry) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!userEntry) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
     const userId = userEntry[0];
     const user = userEntry[1];
     if (user.passwordHash && !(await bcrypt.compare(password, user.passwordHash))) {
@@ -331,10 +411,12 @@ app.post('/api/login', async (req, res) => {
     }});
 });
 
+// Get current user
 app.get('/api/me', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
+    // Auto-expire trial panels
     let changed = false;
     if (user.panels) {
         user.panels.forEach(p => {
@@ -363,7 +445,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── BUY PANEL (including bundles) ─────────────────────────
+// ─── Buy Panel (with bundles) ────────────────────────────────
 const PLAN_MAP = {
     '5gb':       { plan: '5gb', ram: 5120, qty: 1 },
     'unlimited': { plan: 'unlimited', ram: 0, qty: 1 },
@@ -451,7 +533,7 @@ app.post('/api/buy', authMiddleware, async (req, res) => {
     });
 });
 
-// ─── CLAIM FREE TRIAL ──────────────────────────────────────
+// ─── Claim Free Trial ──────────────────────────────────────────
 app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
     const userId = req.userId;
     const user = db.users[userId];
@@ -498,7 +580,7 @@ app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
     }
 });
 
-// ─── VOUCHER ENDPOINTS ────────────────────────────────────
+// ─── Vouchers ──────────────────────────────────────────────────
 app.post('/api/redeem-voucher', authMiddleware, async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: 'Voucher code required' });
@@ -534,6 +616,7 @@ app.get('/api/admin/vouchers', authMiddleware, async (req, res) => {
     res.json({ vouchers: db.vouchers });
 });
 
+// ─── Admin Endpoints ──────────────────────────────────────────
 app.get('/api/admin/users', authMiddleware, (req, res) => {
     const user = db.users[req.userId];
     if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
@@ -565,6 +648,7 @@ app.get('/api/admin/logs', authMiddleware, (req, res) => {
     res.json({ logs: db.logs.slice(-200).reverse() });
 });
 
+// ─── Panel & Bot Management ──────────────────────────────────
 app.post('/api/toggle-panel', authMiddleware, async (req, res) => {
     const { username } = req.body;
     const user = db.users[req.userId];
@@ -630,41 +714,123 @@ app.post('/api/delete-bot', authMiddleware, async (req, res) => {
     res.json({ success: true });
 });
 
+// ─── M-PESA Top-up Endpoints ─────────────────────────────────
+
 app.post('/api/topup', authMiddleware, async (req, res) => {
-    const { amountKsh } = req.body;
-    if (!amountKsh || amountKsh < 8) return res.status(400).json({ error: 'Minimum 8 KSH' });
+    const { amountKsh, phone } = req.body;
+    if (!amountKsh || amountKsh < 8) {
+        return res.status(400).json({ error: 'Minimum top-up is 8 KSH' });
+    }
+    if (!phone || !/^254[0-9]{9}$/.test(phone)) {
+        return res.status(400).json({ error: 'Invalid phone number. Use format 2547XXXXXXXX' });
+    }
+
     const sdAmount = Math.round(amountKsh / 1.6);
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
-    user.sdBalance = (user.sdBalance || 0) + sdAmount;
-    if (!user.transactions) user.transactions = [];
-    user.transactions.push({
-        type: 'topup',
-        amountKsh,
-        sdReceived: sdAmount,
-        reference: `TOPUP-${req.userId}-${Date.now()}`,
-        status: 'success',
-        createdAt: new Date().toISOString()
-    });
-    saveDb();
-    addLog(req.userId, 'topup', { amountKsh, sdAmount });
-    res.json({ success: true, message: `Added ${sdAmount} SD`, sdBalance: user.sdBalance });
+
+    const reference = `TOP${Date.now().toString().slice(-8)}${req.userId.slice(-4)}`;
+
+    try {
+        const stkResponse = await stkPush(phone, amountKsh, reference, 'SD Top-up');
+
+        if (stkResponse.ResponseCode === '0') {
+            db.pendingPayments.push({
+                reference,
+                userId: req.userId,
+                phone,
+                amountKsh,
+                sdAmount,
+                checkoutRequestID: stkResponse.CheckoutRequestID,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            });
+            saveDb();
+            addLog(req.userId, 'topup_initiated', { amountKsh, sdAmount, phone, reference });
+
+            res.json({
+                success: true,
+                message: 'STK Push sent. Please check your phone and enter PIN.',
+                checkoutRequestID: stkResponse.CheckoutRequestID,
+                reference
+            });
+        } else {
+            res.status(500).json({
+                error: 'Failed to initiate payment: ' + stkResponse.ResponseDescription,
+                details: stkResponse
+            });
+        }
+    } catch (error) {
+        console.error('Topup error:', error.message);
+        res.status(500).json({ error: 'Failed to initiate payment: ' + error.message });
+    }
 });
 
-// ─── FALLBACK: Return JSON for unknown API routes ──────────
-app.use('/api/*', (req, res) => {
-    res.status(404).json({ error: 'API endpoint not found' });
+// M-PESA Callback
+app.post('/api/mpesa/callback', async (req, res) => {
+    const callbackData = req.body;
+    console.log('M-PESA Callback received:', JSON.stringify(callbackData, null, 2));
+
+    const stkCallback = callbackData?.Body?.stkCallback;
+    if (!stkCallback) {
+        return res.status(400).send('Invalid callback');
+    }
+
+    const { ResultCode, ResultDesc, CheckoutRequestID, CallbackMetadata } = stkCallback;
+
+    const pendingIdx = db.pendingPayments.findIndex(p => p.checkoutRequestID === CheckoutRequestID);
+    if (pendingIdx === -1) {
+        console.warn('No pending payment found for CheckoutRequestID:', CheckoutRequestID);
+        return res.status(404).send('Payment not found');
+    }
+
+    const pending = db.pendingPayments[pendingIdx];
+
+    if (ResultCode === 0) {
+        let amount = null;
+        if (CallbackMetadata && CallbackMetadata.Item) {
+            const item = CallbackMetadata.Item.find(i => i.Name === 'Amount');
+            if (item) amount = item.Value;
+        }
+        if (!amount) amount = pending.amountKsh;
+
+        const user = db.users[pending.userId];
+        if (user) {
+            user.sdBalance = (user.sdBalance || 0) + pending.sdAmount;
+            if (!user.transactions) user.transactions = [];
+            user.transactions.push({
+                type: 'topup',
+                amountKsh: amount,
+                sdReceived: pending.sdAmount,
+                reference: pending.reference,
+                status: 'success',
+                createdAt: new Date().toISOString()
+            });
+            saveDb();
+            addLog(pending.userId, 'topup_success', { amountKsh: amount, sdAmount: pending.sdAmount, reference: pending.reference });
+        }
+
+        db.pendingPayments[pendingIdx].status = 'completed';
+        db.pendingPayments[pendingIdx].completedAt = new Date().toISOString();
+        saveDb();
+
+        res.json({ ResultCode: 0, ResultDesc: 'Success' });
+    } else {
+        db.pendingPayments[pendingIdx].status = 'failed';
+        db.pendingPayments[pendingIdx].error = ResultDesc;
+        saveDb();
+        addLog(pending.userId, 'topup_failed', { reference: pending.reference, reason: ResultDesc });
+        res.json({ ResultCode: 0, ResultDesc: 'Payment failed' });
+    }
 });
 
-// ─── SERVE STATIC FILES (index.html, etc.) ─────────────────
+// ─── Static files & fallback ──────────────────────────────────
 app.use(express.static(__dirname));
-
-// ─── CATCH-ALL: serve index.html for any other route ──────
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ─── START SERVER ────────────────────────────────────────────
+// ─── Start Server ──────────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
     console.log(`📍 Open http://localhost:${PORT} in your browser`);
@@ -674,4 +840,5 @@ app.listen(PORT, () => {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
         console.warn('⚠️  Google OAuth credentials not set. Google login will not work.');
     }
+    console.log('✅ M-PESA Sandbox keys are hardcoded and ready.');
 });
