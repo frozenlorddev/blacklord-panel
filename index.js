@@ -1,6 +1,6 @@
 // ============================================================
-//   BLACKLORD TECH – REAL PANEL BACKEND
-//   ============================================================
+//   BLACKLORD TECH – FULL BACKEND (no welcome bonus)
+// ============================================================
 'use strict';
 require('dotenv').config();
 
@@ -11,18 +11,30 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // serve index.html from root
+app.use(express.static(__dirname));
+
+// ─── SESSION & PASSPORT ─────────────────────────────────────
+const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret-change-me';
+app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 1 day
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // ─── CONFIG ──────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 const PORT = process.env.PORT || 3002;
-
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_PUBLIC = process.env.PAYSTACK_PUBLIC_KEY;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@blacklordtech.com';
 
 const PANEL_DOMAIN = process.env.PANEL_DOMAIN;
 const PANEL_APIKEY = process.env.PANEL_APIKEY;
@@ -32,26 +44,31 @@ const PANEL_LOC   = parseInt(process.env.PANEL_LOC) || 1;
 
 // ─── DATABASE ──────────────────────────────────────────────
 const DB_PATH = path.join(__dirname, 'database.json');
-
 let db = {
     users: {},
     prices: {
-        panel: { '1gb': 1000, '2gb': 2000, '3gb': 3000, '4gb': 4000, 'unlimited': 8000 },
-        vps: { '1gb': 5000, '2gb': 10000, '4gb': 20000, '8gb': 40000 },
-        currency: 'KES',
+        panel: {
+            '5gb': 50,
+            'unlimited': 70,
+            'bundle-2': 100,
+            'bundle-3': 130,
+            'bundle-4': 150
+        },
+        currency: 'KES'
     },
+    vouchers: [],
+    logs: [],
 };
-
 function loadDb() {
     try {
         if (fs.existsSync(DB_PATH)) {
             const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
             db = { ...db, ...data };
         }
-    } catch (e) { console.error('Failed to load database:', e.message); }
+    } catch (e) { console.error('Load DB error:', e.message); }
 }
 function saveDb() {
-    try { fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2)); } catch (e) { console.error('Failed to save:', e.message); }
+    try { fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2)); } catch (e) { console.error('Save DB error:', e.message); }
 }
 loadDb();
 
@@ -59,75 +76,129 @@ loadDb();
 function generateReferralCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
-
 function generatePassword(username) {
     const first = username.charAt(0).toUpperCase();
     const rest = username.slice(1).toLowerCase();
     const digits = String(Math.floor(Math.random() * 90 + 10));
     return first + rest + digits + '!';
 }
-
-function getRam(ramKey) {
-    const map = { '1gb': 1024, '2gb': 2048, '3gb': 3072, '4gb': 4096, 'unlimited': 0 };
-    return map[ramKey] || 2048;
+function getRam(plan) {
+    const map = { '5gb': 5120, 'unlimited': 0 };
+    return map[plan] || 5120;
 }
-
 function authMiddleware(req, res, next) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    const token = auth.slice(7);
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
         req.userId = decoded.userId;
         next();
     } catch (e) {
         res.status(401).json({ error: 'Invalid token' });
     }
 }
-
-// ─── PAYSTACK HELPERS ──────────────────────────────────────
-async function initPaystackPayment(amount, email, reference, metadata = {}) {
-    try {
-        const response = await axios.post(
-            'https://api.paystack.co/transaction/initialize',
-            {
-                amount: amount * 100,
-                email: email || 'user@example.com',
-                reference: reference || `PAY-${Date.now()}`,
-                metadata: metadata,
-                callback_url: process.env.PAYSTACK_CALLBACK_URL || '',
-            },
-            {
-                headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
-                timeout: 10000,
-            }
-        );
-        return response.data;
-    } catch (err) {
-        console.error('Paystack init error:', err.response?.data || err.message);
-        return null;
-    }
+function addLog(userId, action, details = {}) {
+    db.logs.push({ userId, action, details, timestamp: new Date().toISOString() });
+    if (db.logs.length > 1000) db.logs.shift();
+    saveDb();
 }
 
-async function verifyPaystackPayment(reference) {
+// ─── PASSPORT GOOGLE STRATEGY ──────────────────────────────
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.BASE_URL || 'http://localhost:3002'}/auth/google/callback`
+}, async (accessToken, refreshToken, profile, done) => {
     try {
-        const response = await axios.get(
-            `https://api.paystack.co/transaction/verify/${reference}`,
-            {
-                headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
-                timeout: 10000,
-            }
-        );
-        return response.data;
-    } catch (err) {
-        console.error('Paystack verify error:', err.response?.data || err.message);
-        return null;
-    }
-}
+        const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+        if (!email) return done(new Error('No email from Google'), null);
 
-// ─── PTERODACTYL PANEL CREATION ──────────────────────────────
+        let userId = null;
+        let user = null;
+
+        // Find by googleId
+        for (const [id, u] of Object.entries(db.users)) {
+            if (u.googleId === profile.id) {
+                userId = id;
+                user = u;
+                break;
+            }
+        }
+
+        if (!user) {
+            // Find by email
+            for (const [id, u] of Object.entries(db.users)) {
+                if (u.email === email) {
+                    userId = id;
+                    user = u;
+                    break;
+                }
+            }
+        }
+
+        if (!user) {
+            // Create new user – no welcome bonus
+            userId = `user_${Date.now()}`;
+            const firstName = profile.name?.givenName || email.split('@')[0];
+            const lastName = profile.name?.familyName || '';
+            const newUser = {
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                googleId: profile.id,
+                passwordHash: null,
+                sdBalance: 0, // ❌ no welcome bonus
+                panels: [],
+                bots: [],
+                referralsCount: 0,
+                referralCode: generateReferralCode(),
+                registeredAt: new Date().toISOString(),
+                voucherRedemptions: [],
+            };
+            db.users[userId] = newUser;
+            saveDb();
+            user = newUser;
+        } else {
+            // Update googleId if missing
+            if (!user.googleId) {
+                user.googleId = profile.id;
+                saveDb();
+            }
+        }
+
+        const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+        return done(null, { userId, token, user });
+    } catch (err) {
+        return done(err, null);
+    }
+}));
+
+passport.serializeUser((data, done) => {
+    done(null, { userId: data.userId, token: data.token });
+});
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
+
+// ─── GOOGLE OAUTH ROUTES ────────────────────────────────────
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
+    (req, res) => {
+        const { token, userId, user } = req.user;
+        const frontendUrl = process.env.FRONTEND_URL || '/';
+        res.redirect(`${frontendUrl}?token=${token}`);
+    }
+);
+app.get('/auth/google/failure', (req, res) => {
+    res.status(401).send('Google login failed');
+});
+
+// ─── PTERODACTYL HELPERS ──────────────────────────────────
 async function findPterodactylUser(username) {
     try {
         const response = await axios.get(
@@ -260,10 +331,7 @@ async function createPterodactylPanel(username, ramMB, diskMB, cpuPercent, isAdm
     }
 }
 
-const pendingPayments = new Map();
-
-// ─── API ENDPOINTS ──────────────────────────────────────────
-
+// ─── AUTH ENDPOINTS ──────────────────────────────────────────
 app.post('/api/signup', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
@@ -276,16 +344,17 @@ app.post('/api/signup', async (req, res) => {
         firstName,
         lastName,
         passwordHash: hashed,
-        sdBalance: 50,
+        sdBalance: 0, // ❌ no welcome bonus
         panels: [],
         bots: [],
         referralsCount: 0,
         referralCode: generateReferralCode(),
         registeredAt: new Date().toISOString(),
+        voucherRedemptions: [],
     };
     saveDb();
     const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { email, firstName, lastName, sdBalance: 50, totalServers: 0 } });
+    res.json({ token, user: { email, firstName, lastName, sdBalance: 0, totalServers: 0 } });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -295,8 +364,9 @@ app.post('/api/login', async (req, res) => {
     if (!userEntry) return res.status(401).json({ error: 'Invalid credentials' });
     const userId = userEntry[0];
     const user = userEntry[1];
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    if (user.passwordHash && !(await bcrypt.compare(password, user.passwordHash))) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
     const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: {
         email: user.email,
@@ -313,6 +383,19 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/me', authMiddleware, async (req, res) => {
     const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
+
+    // Auto-expire trial panels
+    let changed = false;
+    if (user.panels) {
+        user.panels.forEach(p => {
+            if (p.trial && p.status === 'active' && new Date(p.expiresAt) <= new Date()) {
+                p.status = 'expired';
+                changed = true;
+            }
+        });
+        if (changed) saveDb();
+    }
+
     res.json({
         user: {
             firstName: user.firstName || '',
@@ -325,214 +408,252 @@ app.get('/api/me', authMiddleware, async (req, res) => {
             referralsCount: user.referralsCount || 0,
             panels: user.panels || [],
             bots: user.bots || [],
+            voucherRedemptions: user.voucherRedemptions || [],
         }
     });
 });
 
-app.get('/api/products', (req, res) => {
-    const panels = Object.keys(db.prices.panel).map(key => ({
-        type: 'panel', id: key,
-        name: key.toUpperCase() + ' Panel',
-        ram: key === 'unlimited' ? 'Unlimited' : key + 'GB',
-        price: db.prices.panel[key],
-        currency: db.prices.currency,
-    }));
-    const adminPlans = [
-        { type: 'admin', id: 'admin-std', name: 'Standard Admin', price: 1500, currency: 'KES' },
-        { type: 'admin', id: 'admin-pro', name: 'Pro Admin', price: 2500, currency: 'KES' },
-        { type: 'admin', id: 'admin-enterprise', name: 'Enterprise Admin', price: 5000, currency: 'KES' },
-    ];
-    res.json({ panels, admin: adminPlans });
-});
-
-app.post('/api/topup', authMiddleware, async (req, res) => {
-    const { amountKsh } = req.body;
-    if (!amountKsh || amountKsh <= 0) return res.status(400).json({ error: 'Invalid amount' });
-    const userId = req.userId;
-    const user = db.users[userId];
-    if (!user) return res.status(401).json({ error: 'User not found' });
-
-    const sdAmount = Math.round(amountKsh / 1.6);
-    if (sdAmount <= 0) return res.status(400).json({ error: 'Amount too small' });
-
-    const reference = `TOPUP-${userId}-${Date.now()}`;
-    const email = user.email || 'user@example.com';
-
-    const init = await initPaystackPayment(amountKsh, email, reference, {
-        type: 'topup',
-        userId: userId,
-        sdAmount: sdAmount,
-        amountKsh: amountKsh,
-    });
-
-    if (!init || !init.status) return res.status(500).json({ error: 'Payment initiation failed' });
-
-    pendingPayments.set(reference, {
-        userId: userId,
-        type: 'topup',
-        sdAmount: sdAmount,
-        amountKsh: amountKsh,
-        status: 'pending',
-    });
-
-    res.json({ reference, authorization_url: init.data.authorization_url });
-});
-
-app.get('/api/verify-payment', async (req, res) => {
-    const { reference } = req.query;
-    if (!reference) return res.status(400).json({ error: 'Missing reference' });
-
-    const verify = await verifyPaystackPayment(reference);
-    if (!verify || !verify.status || verify.data.status !== 'success') {
-        return res.status(400).json({ error: 'Payment not successful' });
-    }
-
-    const metadata = verify.data.metadata || {};
-    const pending = pendingPayments.get(reference);
-
-    if (metadata.type === 'topup' || pending?.type === 'topup') {
-        const userId = metadata.userId || pending?.userId;
-        const sdAmount = parseFloat(metadata.sdAmount || pending?.sdAmount || 0);
-        if (userId && sdAmount > 0) {
-            const user = db.users[userId];
-            if (user) {
-                user.sdBalance = (user.sdBalance || 0) + sdAmount;
-                saveDb();
-                pendingPayments.delete(reference);
-                return res.json({
-                    success: true,
-                    message: `✅ Added ${sdAmount} SD to your balance!`,
-                    sdBalance: user.sdBalance,
-                });
-            }
-        }
-        pendingPayments.delete(reference);
-        return res.json({ success: true, message: 'Top-up processed.' });
-    }
-
-    pendingPayments.delete(reference);
-    res.json({ success: true, message: 'Payment verified.' });
-});
+// ─── BUY PANEL (including bundles) ─────────────────────────
+const PLAN_MAP = {
+    '5gb':       { plan: '5gb', ram: 5120, qty: 1 },
+    'unlimited': { plan: 'unlimited', ram: 0, qty: 1 },
+    'bundle-2':  { plan: 'unlimited', ram: 0, qty: 2 },
+    'bundle-3':  { plan: 'unlimited', ram: 0, qty: 3 },
+    'bundle-4':  { plan: 'unlimited', ram: 0, qty: 4 },
+};
 
 app.post('/api/buy', authMiddleware, async (req, res) => {
-    const { productType, productId, username, password: userPassword } = req.body;
+    const { productType, productId, username, password, quantity = 1 } = req.body;
     const userId = req.userId;
     const user = db.users[userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    let sdPrice = 0;
-    let productDetails = {};
-    const sdToKsh = 1.6;
-
-    if (productType === 'panel') {
-        const ram = productId;
-        const kshPrice = db.prices.panel[ram];
-        if (!kshPrice) return res.status(400).json({ error: 'Invalid panel plan' });
-        sdPrice = Math.round(kshPrice / sdToKsh);
-        productDetails = { ram, username, isAdmin: false };
-    } else if (productType === 'admin') {
-        const adminPriceMap = { 'admin-std': 1500, 'admin-pro': 2500, 'admin-enterprise': 5000 };
-        const kshPrice = adminPriceMap[productId];
-        if (!kshPrice) return res.status(400).json({ error: 'Invalid admin plan' });
-        sdPrice = Math.round(kshPrice / sdToKsh);
-        productDetails = { ram: 1024, username, isAdmin: true };
-    } else {
+    if (productType !== 'panel') {
         return res.status(400).json({ error: 'Invalid product type' });
     }
 
-    if (sdPrice <= 0) return res.status(400).json({ error: 'Price not configured' });
+    const info = PLAN_MAP[productId];
+    if (!info) return res.status(400).json({ error: 'Invalid product' });
 
-    if ((user.sdBalance || 0) < sdPrice) {
+    const { plan, ram, qty } = info;
+    const finalQuantity = qty;
+
+    // Get total SD price from frontend (pre‑computed)
+    const kshPrice = db.prices.panel[productId];
+    if (!kshPrice) return res.status(400).json({ error: 'Price not configured' });
+    const totalSdPrice = Math.round(kshPrice / 1.6);
+    if (totalSdPrice <= 0) return res.status(400).json({ error: 'Price invalid' });
+
+    if ((user.sdBalance || 0) < totalSdPrice) {
         return res.status(402).json({
             error: 'Insufficient SD balance',
             sdBalance: user.sdBalance || 0,
-            sdRequired: sdPrice,
-            kshRequired: Math.round(sdPrice * sdToKsh),
+            sdRequired: totalSdPrice,
         });
     }
 
-    user.sdBalance -= sdPrice;
+    user.sdBalance -= totalSdPrice;
     saveDb();
 
+    const createdPanels = [];
+    const failed = [];
+    const unitPrice = Math.round(totalSdPrice / finalQuantity);
+
+    for (let i = 1; i <= finalQuantity; i++) {
+        let finalUsername = username;
+        if (finalQuantity > 1) finalUsername = `${username}${i}`;
+        try {
+            const diskMB = ram === 0 ? 0 : ram * 2; // unlimited disk = 0
+            const panelResult = await createPterodactylPanel(
+                finalUsername,
+                ram,
+                diskMB,
+                40,
+                false
+            );
+            const panelRecord = {
+                username: finalUsername,
+                password: panelResult.password || generatePassword(finalUsername),
+                domain: panelResult.domain,
+                plan: plan,
+                sdPrice: unitPrice,
+                status: 'active',
+                type: 'panel',
+                serverId: panelResult.serverId,
+                reused: panelResult.reused,
+                createdAt: new Date().toISOString(),
+                trial: false,
+            };
+            user.panels.push(panelRecord);
+            createdPanels.push(panelRecord);
+            saveDb();
+        } catch (error) {
+            failed.push({ username: finalUsername, error: error.message });
+        }
+    }
+
+    if (failed.length > 0) {
+        const refundSd = unitPrice * failed.length;
+        user.sdBalance += refundSd;
+        saveDb();
+    }
+
+    addLog(userId, 'purchase_panels', { productId, quantity: finalQuantity, created: createdPanels.length, failed: failed.length });
+    res.json({
+        success: true,
+        created: createdPanels.length,
+        failed: failed.length,
+        panels: createdPanels.map(p => ({ username: p.username, password: p.password, domain: p.domain, plan: p.plan })),
+        errors: failed,
+    });
+});
+
+// ─── CLAIM FREE TRIAL (5GB, 3 hours) ──────────────────────
+app.post('/api/claim-free-panel', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const user = db.users[userId];
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    // Check existing trial
+    const existing = (user.panels || []).find(p => p.trial && p.status === 'active');
+    if (existing) {
+        if (new Date(existing.expiresAt) > new Date()) {
+            return res.status(400).json({
+                error: 'You already have an active trial',
+                panel: { username: existing.username, domain: existing.domain, expiresAt: existing.expiresAt }
+            });
+        } else {
+            return res.status(400).json({ error: 'Your trial has expired. Purchase a full panel.' });
+        }
+    }
+
+    const username = `trial_${user.firstName.toLowerCase()}_${Date.now().toString().slice(-4)}`;
+    const password = generatePassword(username);
+    const ramMB = 5120, diskMB = 10240, cpuPercent = 40;
     try {
-        const ramMB = productDetails.ram || getRam(productDetails.ram);
-        const diskMB = ramMB * 2;
-        const cpuPercent = productDetails.isAdmin ? 60 : 40;
-
-        const panelResult = await createPterodactylPanel(
-            username,
-            ramMB,
-            diskMB,
-            cpuPercent,
-            productDetails.isAdmin
-        );
-
+        const panelResult = await createPterodactylPanel(username, ramMB, diskMB, cpuPercent, false);
+        const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
         const panelRecord = {
-            username: username,
-            password: panelResult.password || userPassword || generatePassword(username),
+            username,
+            password: panelResult.password || password,
             domain: panelResult.domain,
-            plan: productDetails.ram || productId,
-            sdPrice: sdPrice,
+            plan: '5gb',
+            sdPrice: 0,
             status: 'active',
-            type: productDetails.isAdmin ? 'admin' : 'panel',
+            type: 'trial',
+            trial: true,
+            expiresAt,
             serverId: panelResult.serverId,
             reused: panelResult.reused,
             createdAt: new Date().toISOString(),
         };
-        if (!user.panels) user.panels = [];
         user.panels.push(panelRecord);
         saveDb();
-
-        res.json({
-            success: true,
-            panel: {
-                username: panelRecord.username,
-                password: panelRecord.password,
-                domain: panelRecord.domain,
-                plan: panelRecord.plan,
-                status: panelRecord.status,
-                reused: panelRecord.reused,
-            }
-        });
+        addLog(userId, 'claim_free_trial', { username, expiresAt });
+        res.json({ success: true, panel: { username, password: panelResult.password || password, domain: panelResult.domain, expiresAt } });
     } catch (error) {
-        user.sdBalance += sdPrice;
-        saveDb();
-        console.error('Panel creation error:', error.message);
-        res.status(500).json({ error: 'Panel creation failed: ' + error.message });
+        res.status(500).json({ error: 'Failed to create trial: ' + error.message });
     }
 });
 
+// ─── VOUCHER ENDPOINTS ────────────────────────────────────
+app.post('/api/redeem-voucher', authMiddleware, async (req, res) => {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Voucher code required' });
+    const voucher = db.vouchers.find(v => v.code === code.toUpperCase() && !v.usedBy);
+    if (!voucher) return res.status(404).json({ error: 'Invalid or already used voucher' });
+    const user = db.users[req.userId];
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    user.sdBalance = (user.sdBalance || 0) + voucher.sdAmount;
+    voucher.usedBy = req.userId;
+    voucher.usedAt = new Date().toISOString();
+    if (!user.voucherRedemptions) user.voucherRedemptions = [];
+    user.voucherRedemptions.push({ code: voucher.code, amount: voucher.sdAmount, redeemedAt: new Date().toISOString() });
+    saveDb();
+    addLog(req.userId, 'redeem_voucher', { code, sdAmount: voucher.sdAmount });
+    res.json({ success: true, message: `Redeemed ${voucher.sdAmount} SD`, sdAmount: voucher.sdAmount });
+});
+
+app.post('/api/admin/generate-voucher', authMiddleware, async (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const { sdAmount } = req.body;
+    if (!sdAmount || sdAmount < 1) return res.status(400).json({ error: 'Invalid SD amount' });
+    const code = 'VOUCHER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    db.vouchers.push({ code, sdAmount: parseInt(sdAmount), usedBy: null, createdAt: new Date().toISOString() });
+    saveDb();
+    addLog(req.userId, 'generate_voucher', { code, sdAmount });
+    res.json({ success: true, code, sdAmount });
+});
+
+app.get('/api/admin/vouchers', authMiddleware, async (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    res.json({ vouchers: db.vouchers });
+});
+
+// ─── ADMIN ENDPOINTS ──────────────────────────────────────
+app.get('/api/admin/users', authMiddleware, (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const users = Object.entries(db.users).map(([id, u]) => ({
+        id,
+        email: u.email,
+        name: u.firstName + ' ' + u.lastName,
+        sdBalance: u.sdBalance || 0,
+        totalServers: (u.panels || []).length + (u.bots || []).length,
+        registeredAt: u.registeredAt
+    }));
+    res.json({ users });
+});
+
+app.post('/api/admin/adjust-balance', authMiddleware, (req, res) => {
+    const admin = db.users[req.userId];
+    if (!admin || admin.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    const { userId, amount } = req.body;
+    if (!db.users[userId]) return res.status(404).json({ error: 'User not found' });
+    db.users[userId].sdBalance = (db.users[userId].sdBalance || 0) + amount;
+    addLog(userId, 'admin_adjust_balance', { by: req.userId, amount });
+    saveDb();
+    res.json({ success: true, newBalance: db.users[userId].sdBalance });
+});
+
+app.get('/api/admin/logs', authMiddleware, (req, res) => {
+    const user = db.users[req.userId];
+    if (!user || user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Admin only' });
+    res.json({ logs: db.logs.slice(-200).reverse() });
+});
+
+// ─── PANEL MANAGEMENT ──────────────────────────────────────
 app.post('/api/toggle-panel', authMiddleware, async (req, res) => {
     const { username } = req.body;
-    if (!username) return res.status(400).json({ error: 'Username required' });
-    const userId = req.userId;
-    const user = db.users[userId];
+    const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
     const panel = user.panels.find(p => p.username === username);
     if (!panel) return res.status(404).json({ error: 'Panel not found' });
     panel.status = panel.status === 'active' ? 'inactive' : 'active';
     saveDb();
+    addLog(req.userId, 'toggle_panel', { username, newStatus: panel.status });
     res.json({ success: true, status: panel.status });
 });
 
 app.post('/api/delete-panel', authMiddleware, async (req, res) => {
     const { username } = req.body;
-    if (!username) return res.status(400).json({ error: 'Username required' });
-    const userId = req.userId;
-    const user = db.users[userId];
+    const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
-    const index = user.panels.findIndex(p => p.username === username);
-    if (index === -1) return res.status(404).json({ error: 'Panel not found' });
-    user.panels.splice(index, 1);
+    const idx = user.panels.findIndex(p => p.username === username);
+    if (idx === -1) return res.status(404).json({ error: 'Panel not found' });
+    user.panels.splice(idx, 1);
     saveDb();
+    addLog(req.userId, 'delete_panel', { username });
     res.json({ success: true });
 });
 
+// ─── BOT ENDPOINTS ──────────────────────────────────────────
 app.post('/api/deploy-bot', authMiddleware, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Bot name required' });
-    const userId = req.userId;
-    const user = db.users[userId];
+    const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
     const bot = {
         name,
@@ -544,14 +665,13 @@ app.post('/api/deploy-bot', authMiddleware, async (req, res) => {
     if (!user.bots) user.bots = [];
     user.bots.push(bot);
     saveDb();
+    addLog(req.userId, 'deploy_bot', { name });
     res.json({ success: true, bot });
 });
 
 app.post('/api/toggle-bot', authMiddleware, async (req, res) => {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ error: 'Token required' });
-    const userId = req.userId;
-    const user = db.users[userId];
+    const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
     const bot = user.bots.find(b => b.token === token);
     if (!bot) return res.status(404).json({ error: 'Bot not found' });
@@ -562,15 +682,35 @@ app.post('/api/toggle-bot', authMiddleware, async (req, res) => {
 
 app.post('/api/delete-bot', authMiddleware, async (req, res) => {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ error: 'Token required' });
-    const userId = req.userId;
-    const user = db.users[userId];
+    const user = db.users[req.userId];
     if (!user) return res.status(401).json({ error: 'User not found' });
-    const index = user.bots.findIndex(b => b.token === token);
-    if (index === -1) return res.status(404).json({ error: 'Bot not found' });
-    user.bots.splice(index, 1);
+    const idx = user.bots.findIndex(b => b.token === token);
+    if (idx === -1) return res.status(404).json({ error: 'Bot not found' });
+    user.bots.splice(idx, 1);
     saveDb();
     res.json({ success: true });
+});
+
+// ─── TOP-UP (simulated – replace with Paystack) ──────────
+app.post('/api/topup', authMiddleware, async (req, res) => {
+    const { amountKsh } = req.body;
+    if (!amountKsh || amountKsh < 8) return res.status(400).json({ error: 'Minimum 8 KSH' });
+    const sdAmount = Math.round(amountKsh / 1.6);
+    const user = db.users[req.userId];
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    user.sdBalance = (user.sdBalance || 0) + sdAmount;
+    if (!user.transactions) user.transactions = [];
+    user.transactions.push({
+        type: 'topup',
+        amountKsh,
+        sdReceived: sdAmount,
+        reference: `TOPUP-${req.userId}-${Date.now()}`,
+        status: 'success',
+        createdAt: new Date().toISOString()
+    });
+    saveDb();
+    addLog(req.userId, 'topup', { amountKsh, sdAmount });
+    res.json({ success: true, message: `Added ${sdAmount} SD`, sdBalance: user.sdBalance });
 });
 
 // ─── SERVE FRONTEND ──────────────────────────────────────────
@@ -584,5 +724,8 @@ app.listen(PORT, () => {
     console.log(`📍 Open http://localhost:${PORT} in your browser`);
     if (!PANEL_DOMAIN || !PANEL_APIKEY) {
         console.warn('⚠️  PANEL_DOMAIN or PANEL_APIKEY not set. Panel creation will fail.');
+    }
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.warn('⚠️  Google OAuth credentials not set. Google login will not work.');
     }
 });

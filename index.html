@@ -3,10 +3,33 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>𝐁𝐋𝐀𝐂𝐊𝐋𝐎𝐑𝐃 𝐓𝐄𝐂𝐇 𝐈𝐍𝐂</title>
+    <title>𝐁𝐋𝐀𝐂𝐊𝐋𝐎𝐑𝐃 𝐓𝐄𝐂𝐇</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
-        /* ─── RESET & BASE ─── */
+        /* ─── CSS Variables for Dark/Light ─── */
+        :root {
+            --bg-primary: #0b0d1a;
+            --bg-secondary: rgba(20, 24, 43, 0.88);
+            --bg-card: rgba(20, 24, 43, 0.85);
+            --text-primary: #eef2ff;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(30, 36, 64, 0.5);
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+            --btn-primary: linear-gradient(135deg, #7c3aed, #3b82f6);
+            --btn-trial: linear-gradient(135deg, #f59e0b, #f97316);
+            --btn-voucher: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        [data-theme="light"] {
+            --bg-primary: #f0f2f5;
+            --bg-secondary: rgba(255, 255, 255, 0.9);
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a6a;
+            --border-color: rgba(200, 200, 220, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.8);
+            --shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+        }
         * {
             margin: 0;
             padding: 0;
@@ -14,12 +37,14 @@
             font-family: 'Inter', system-ui, sans-serif;
         }
         body {
-            color: #eef2ff;
+            color: var(--text-primary);
             min-height: 100vh;
             padding: 16px 14px 100px;
             display: flex;
             justify-content: center;
             position: relative;
+            background: var(--bg-primary);
+            transition: background 0.3s;
         }
         body::before {
             content: '';
@@ -30,6 +55,7 @@
             height: 100%;
             background: url('https://i.ibb.co/DPYbLLJm/cb45d5e6c15c.jpg') no-repeat center center / cover;
             z-index: -2;
+            opacity: 0.6;
         }
         body::after {
             content: '';
@@ -38,8 +64,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 13, 26, 0.78);
+            background: var(--bg-primary);
             z-index: -1;
+            opacity: 0.85;
         }
         .app {
             max-width: 480px;
@@ -98,7 +125,7 @@
         .brand-text span {
             font-weight: 300;
             font-size: 14px;
-            -webkit-text-fill-color: #94a3b8;
+            -webkit-text-fill-color: var(--text-secondary);
             margin-left: 4px;
         }
         .header-actions {
@@ -109,7 +136,7 @@
         }
         .header-actions i {
             font-size: 20px;
-            color: #94a3b8;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: 0.2s;
         }
@@ -129,6 +156,17 @@
             color: #fff;
             box-shadow: 0 0 0 2px #1e2130;
             cursor: pointer;
+        }
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0 6px;
+        }
+        .theme-toggle:hover {
+            color: #c084fc;
         }
 
         /* ─── PAGES ─── */
@@ -171,7 +209,7 @@
         }
         .hero .welcome-text {
             font-size: 1.05rem;
-            color: #cbd5e1;
+            color: var(--text-secondary);
             max-width: 400px;
             margin: 0 auto 30px;
             line-height: 1.8;
@@ -182,7 +220,7 @@
             font-weight: 700;
         }
         .hero .btn-primary {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            background: var(--btn-primary);
             border: none;
             color: #fff;
             padding: 14px 44px;
@@ -241,7 +279,7 @@
         }
         .circle-badge .badge-text .small {
             font-size: 0.6rem;
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-weight: 400;
         }
 
@@ -249,11 +287,11 @@
         .form-container {
             max-width: 400px;
             margin: 30px auto;
-            background: rgba(20, 24, 43, 0.88);
+            background: var(--bg-secondary);
             backdrop-filter: blur(8px);
             border-radius: 24px;
             padding: 30px 24px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
         }
         .form-container h2 {
             text-align: center;
@@ -266,23 +304,23 @@
         }
         .form-container .sub {
             text-align: center;
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.95rem;
             margin-bottom: 24px;
         }
         .form-container label {
             display: block;
             font-size: 0.85rem;
-            color: #cbd5e1;
+            color: var(--text-secondary);
             margin: 14px 0 4px;
         }
         .form-container input {
             width: 100%;
             padding: 14px;
             border-radius: 14px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            background: rgba(0, 0, 0, 0.3);
-            color: #eef2ff;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-size: 1rem;
             transition: 0.2s;
         }
@@ -295,7 +333,7 @@
             width: 100%;
             padding: 14px;
             margin-top: 24px;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            background: var(--btn-primary);
             border: none;
             border-radius: 60px;
             color: #fff;
@@ -312,7 +350,7 @@
         .form-footer {
             text-align: center;
             margin-top: 18px;
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
         .form-footer a {
@@ -369,7 +407,7 @@
             align-items: center;
             gap: 12px;
             margin: 20px 0 8px;
-            color: #64748b;
+            color: var(--text-secondary);
             font-size: 0.85rem;
         }
         .divider::before,
@@ -377,7 +415,7 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: rgba(30, 36, 64, 0.4);
+            background: var(--border-color);
         }
 
         /* ─── DASHBOARD ─── */
@@ -393,7 +431,7 @@
             margin-right: 6px;
         }
         .greeting p {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 14px;
             margin-top: 2px;
         }
@@ -409,12 +447,12 @@
             flex: 1;
             min-width: 100px;
             max-width: 180px;
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(6px);
             border-radius: 16px;
             padding: 14px 10px;
             text-align: center;
-            border: 1px solid rgba(30, 36, 64, 0.6);
+            border: 1px solid var(--border-color);
             transition: 0.25s;
             cursor: pointer;
         }
@@ -431,7 +469,7 @@
         .quick-banner .qb-item span {
             font-size: 12px;
             font-weight: 500;
-            color: #cbd5e1;
+            color: var(--text-secondary);
         }
 
         /* ─── VOUCHER ROW ─── */
@@ -439,11 +477,11 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(6px);
             border-radius: 16px;
             padding: 10px 14px;
-            border: 1px solid rgba(30, 36, 64, 0.6);
+            border: 1px solid var(--border-color);
             margin: 10px 0 16px;
             flex-wrap: wrap;
         }
@@ -452,9 +490,9 @@
             min-width: 120px;
             padding: 10px 14px;
             border-radius: 40px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            background: rgba(0, 0, 0, 0.3);
-            color: #eef2ff;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-size: 0.95rem;
             transition: 0.2s;
         }
@@ -464,7 +502,7 @@
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
         }
         .voucher-row .voucher-btn {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+            background: var(--btn-voucher);
             border: none;
             color: #fff;
             padding: 10px 20px;
@@ -497,14 +535,125 @@
             color: #f87171;
         }
 
+        /* ─── ADMIN VOUCHER SECTION ─── */
+        .admin-voucher-section {
+            background: var(--bg-card);
+            backdrop-filter: blur(6px);
+            border-radius: 18px;
+            padding: 16px 18px;
+            border: 1px solid var(--border-color);
+            margin: 12px 0 16px;
+        }
+        .admin-voucher-section h4 {
+            color: #c084fc;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-voucher-section .av-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .admin-voucher-section .av-row input {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 14px;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .admin-voucher-section .av-row input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .admin-voucher-section .av-row .btn-gen {
+            background: var(--btn-primary);
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+        .admin-voucher-section .av-row .btn-gen:hover {
+            transform: scale(1.04);
+        }
+        .admin-voucher-section .voucher-list {
+            margin-top: 12px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .admin-voucher-section .voucher-list .v-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.85rem;
+        }
+        .admin-voucher-section .voucher-list .v-item .v-code {
+            font-weight: 600;
+            color: #c084fc;
+            font-family: monospace;
+        }
+        .admin-voucher-section .voucher-list .v-item .v-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 1px 10px;
+            border-radius: 40px;
+        }
+        .v-status.used {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+        .v-status.unused {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+        .v-status.expired {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        /* ─── TRIAL BUTTON ─── */
+        .btn-trial {
+            background: var(--btn-trial);
+            border: none;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.25s;
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+            width: 100%;
+            margin: 8px 0;
+        }
+        .btn-trial:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+        }
+        .btn-trial:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* ─── BALANCE CARD ─── */
         .balance-card {
-            background: rgba(20, 24, 43, 0.88);
+            background: var(--bg-secondary);
             backdrop-filter: blur(8px);
             border-radius: 24px;
             padding: 24px 20px 20px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
             margin-bottom: 20px;
             position: relative;
             overflow: hidden;
@@ -527,7 +676,7 @@
             gap: 8px;
         }
         .balance-label {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.3px;
@@ -540,7 +689,7 @@
         .balance-actions button {
             background: rgba(30, 36, 64, 0.7);
             border: none;
-            color: #eef2ff;
+            color: var(--text-primary);
             padding: 6px 14px;
             border-radius: 40px;
             font-size: 12px;
@@ -577,7 +726,7 @@
         .balance-ksh {
             font-size: 18px;
             font-weight: 500;
-            color: #94a3b8;
+            color: var(--text-secondary);
         }
         .balance-change {
             font-size: 14px;
@@ -601,18 +750,18 @@
             margin-bottom: 20px;
         }
         .stat-card {
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(6px);
             border-radius: 18px;
             padding: 16px 14px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             transition: 0.2s;
         }
         .stat-card:hover {
             border-color: rgba(59, 63, 107, 0.8);
         }
         .stat-card .stat-label {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 12px;
             font-weight: 500;
             text-transform: uppercase;
@@ -631,7 +780,7 @@
         }
         .stat-card .stat-sub {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-top: 2px;
         }
 
@@ -659,15 +808,15 @@
             margin-bottom: 20px;
         }
         .qa-item {
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(6px);
             border-radius: 16px;
             padding: 14px 6px;
             text-align: center;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             transition: 0.2s;
             cursor: pointer;
-            color: #eef2ff;
+            color: var(--text-primary);
         }
         .qa-item:hover {
             border-color: #6c3cff;
@@ -683,7 +832,7 @@
         .qa-item span {
             font-size: 11px;
             font-weight: 500;
-            color: #cbd5e1;
+            color: var(--text-secondary);
         }
         .qa-item .badge {
             display: inline-block;
@@ -698,11 +847,11 @@
 
         /* ─── ACTIVITY ─── */
         .activity-list {
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(6px);
             border-radius: 18px;
             padding: 8px 0;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             margin-bottom: 10px;
         }
         .activity-item {
@@ -743,7 +892,7 @@
             display: block;
             font-weight: 400;
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
         }
         .activity-right {
             font-size: 13px;
@@ -752,6 +901,16 @@
         }
         .activity-right.negative {
             color: #f87171;
+        }
+
+        /* ─── FOOTER ─── */
+        .footer-note {
+            text-align: center;
+            padding: 12px 0 8px;
+            font-size: 11px;
+            color: rgba(71, 85, 105, 0.8);
+            border-top: 1px solid var(--border-color);
+            margin-top: 6px;
         }
 
         /* ─── BOTS / SERVERS ─── */
@@ -766,7 +925,7 @@
             font-weight: 600;
         }
         .btn-deploy-bot {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            background: var(--btn-primary);
             border: none;
             color: #fff;
             padding: 8px 20px;
@@ -782,10 +941,10 @@
             box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
         }
         .bots-list {
-            background: rgba(20, 24, 43, 0.85);
+            background: var(--bg-card);
             backdrop-filter: blur(8px);
             border-radius: 18px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             padding: 4px 0;
             margin-bottom: 20px;
         }
@@ -814,7 +973,7 @@
         }
         .bot-item .bot-info .bot-details {
             font-size: 0.8rem;
-            color: #94a3b8;
+            color: var(--text-secondary);
         }
         .bot-item .bot-status {
             font-size: 0.7rem;
@@ -834,7 +993,7 @@
         .bot-item .bot-actions button {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #ccc;
+            color: var(--text-secondary);
             padding: 4px 10px;
             border-radius: 30px;
             font-size: 0.7rem;
@@ -853,6 +1012,84 @@
             color: #f87171;
         }
 
+        .server-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: 14px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .server-item .server-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .server-item .server-info .server-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .server-item .server-info .server-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .server-item .server-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 40px;
+            text-transform: uppercase;
+        }
+        .server-item .server-status.active {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+        .server-item .server-status.inactive {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+        .server-item .server-actions button {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 4px;
+        }
+        .server-item .server-actions button:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: #7c3aed;
+            color: #fff;
+        }
+        .server-item .server-actions .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+            border-color: #f87171;
+            color: #f87171;
+        }
+        .server-section h3 {
+            margin: 16px 0 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .empty-state {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 16px;
+        }
+        .trial-badge {
+            background: #f59e0b;
+            color: #fff;
+            padding: 1px 10px;
+            border-radius: 40px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
         /* ─── BOTTOM NAV ─── */
         .bottom-nav {
             position: fixed;
@@ -861,7 +1098,7 @@
             right: 0;
             background: rgba(13, 16, 34, 0.92);
             backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(30, 36, 64, 0.5);
+            border-top: 1px solid var(--border-color);
             padding: 10px 16px 14px;
             display: flex;
             justify-content: space-around;
@@ -940,16 +1177,6 @@
             font-size: 18px;
         }
 
-        /* ─── FOOTER ─── */
-        .footer-note {
-            text-align: center;
-            padding: 12px 0 8px;
-            font-size: 11px;
-            color: rgba(71, 85, 105, 0.8);
-            border-top: 1px solid rgba(26, 31, 58, 0.5);
-            margin-top: 6px;
-        }
-
         /* ─── MODALS ─── */
         .modal {
             display: none;
@@ -968,13 +1195,13 @@
             display: flex;
         }
         .modal-content {
-            background: rgba(20, 24, 43, 0.95);
+            background: var(--bg-secondary);
             backdrop-filter: blur(12px);
             border-radius: 24px;
             padding: 30px 24px;
             max-width: 420px;
             width: 90%;
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -986,7 +1213,7 @@
         }
         .modal-content .modal-sub {
             text-align: center;
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.9rem;
             margin-bottom: 20px;
         }
@@ -998,7 +1225,7 @@
         }
         .modal-content .plan-card {
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(30, 36, 64, 0.5);
+            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 16px 12px;
             text-align: center;
@@ -1020,7 +1247,7 @@
         }
         .modal-content .plan-card .plan-price {
             font-size: 0.85rem;
-            color: #94a3b8;
+            color: var(--text-secondary);
             margin-top: 4px;
         }
         .modal-content .plan-card .plan-sd {
@@ -1032,9 +1259,9 @@
             width: 100%;
             padding: 14px;
             border-radius: 14px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            background: rgba(0, 0, 0, 0.3);
-            color: #eef2ff;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-size: 1rem;
             margin-bottom: 12px;
             transition: 0.2s;
@@ -1062,7 +1289,7 @@
             min-width: 100px;
         }
         .btn-buy {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            background: var(--btn-primary);
             color: #fff;
             box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
         }
@@ -1077,7 +1304,7 @@
         }
         .btn-cancel-modal {
             background: rgba(30, 36, 64, 0.7);
-            color: #94a3b8;
+            color: var(--text-secondary);
         }
         .btn-cancel-modal:hover {
             background: rgba(45, 53, 88, 0.8);
@@ -1103,11 +1330,11 @@
             border-bottom: none;
         }
         .profile-row .label {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
         .profile-row .value {
-            color: #eef2ff;
+            color: var(--text-primary);
             font-weight: 600;
         }
         .creds-box {
@@ -1127,11 +1354,11 @@
             border-bottom: none;
         }
         .creds-box .creds-label {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.85rem;
         }
         .creds-box .creds-value {
-            color: #eef2ff;
+            color: var(--text-primary);
             font-weight: 600;
             font-size: 0.95rem;
             word-break: break-all;
@@ -1139,92 +1366,6 @@
         .creds-box .creds-value i {
             color: #34d399;
             margin-right: 6px;
-        }
-
-        /* ─── ADMIN VOUCHER SECTION ─── */
-        .admin-voucher-section {
-            background: rgba(20, 24, 43, 0.85);
-            backdrop-filter: blur(6px);
-            border-radius: 18px;
-            padding: 16px 18px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            margin: 12px 0 16px;
-        }
-        .admin-voucher-section h4 {
-            color: #c084fc;
-            font-size: 1rem;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .admin-voucher-section .av-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .admin-voucher-section .av-row input {
-            flex: 1;
-            min-width: 100px;
-            padding: 10px 14px;
-            border-radius: 40px;
-            border: 1px solid rgba(30, 36, 64, 0.5);
-            background: rgba(0, 0, 0, 0.3);
-            color: #eef2ff;
-            font-size: 0.95rem;
-        }
-        .admin-voucher-section .av-row input:focus {
-            outline: none;
-            border-color: #7c3aed;
-        }
-        .admin-voucher-section .av-row .btn-gen {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            border: none;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.25s;
-        }
-        .admin-voucher-section .av-row .btn-gen:hover {
-            transform: scale(1.04);
-        }
-        .admin-voucher-section .voucher-list {
-            margin-top: 12px;
-            max-height: 160px;
-            overflow-y: auto;
-        }
-        .admin-voucher-section .voucher-list .v-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 0.85rem;
-        }
-        .admin-voucher-section .voucher-list .v-item .v-code {
-            font-weight: 600;
-            color: #c084fc;
-            font-family: monospace;
-        }
-        .admin-voucher-section .voucher-list .v-item .v-status {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 1px 10px;
-            border-radius: 40px;
-        }
-        .v-status.used {
-            background: rgba(248, 113, 113, 0.15);
-            color: #f87171;
-        }
-        .v-status.unused {
-            background: rgba(52, 211, 153, 0.15);
-            color: #34d399;
-        }
-        .v-status.expired {
-            background: rgba(251, 191, 36, 0.15);
-            color: #fbbf24;
         }
 
         /* ─── RESPONSIVE ─── */
@@ -1262,74 +1403,6 @@
                 padding: 4px 10px;
             }
         }
-        .server-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: rgba(20, 24, 43, 0.7);
-            border-radius: 14px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(30, 36, 64, 0.4);
-        }
-        .server-item .server-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .server-item .server-info .server-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .server-item .server-info .server-details {
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
-        .server-item .server-status {
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 2px 10px;
-            border-radius: 40px;
-            text-transform: uppercase;
-        }
-        .server-item .server-status.active {
-            background: rgba(52, 211, 153, 0.15);
-            color: #34d399;
-        }
-        .server-item .server-status.inactive {
-            background: rgba(248, 113, 113, 0.15);
-            color: #f87171;
-        }
-        .server-item .server-actions button {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #ccc;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-left: 4px;
-        }
-        .server-item .server-actions button:hover {
-            background: rgba(124, 58, 237, 0.2);
-            border-color: #7c3aed;
-            color: #fff;
-        }
-        .server-item .server-actions .btn-danger:hover {
-            background: rgba(248, 113, 113, 0.2);
-            border-color: #f87171;
-            color: #f87171;
-        }
-        .empty-state {
-            text-align: center;
-            color: #94a3b8;
-            padding: 16px;
-        }
-        .server-section h3 {
-            margin: 16px 0 10px;
-            color: #cbd5e1;
-            font-weight: 500;
-        }
     </style>
 </head>
 <body>
@@ -1344,6 +1417,7 @@
             </div>
             <div class="header-actions">
                 <i class="fas fa-bell"></i>
+                <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle"><i class="fas fa-moon"></i></button>
                 <div class="avatar" id="avatarDisplay">K</div>
             </div>
         </header>
@@ -1351,7 +1425,7 @@
         <!-- ─── LANDING ─── -->
         <div id="page-landing" class="page active">
             <div class="hero">
-                <h1>𝐓𝐇𝐄 𝐅𝐔𝐓𝐔𝐑𝐄 𝐒𝐓𝐀𝐑𝐓𝐒 𝐀𝐓<br />𝐁𝐋𝐀𝐂𝐊𝐋𝐎𝐑𝐃 𝐓𝐄𝐂𝐇 𝐈𝐍𝐂</h1>
+                <h1>𝐓𝐇𝐄 𝐅𝐔𝐓𝐔𝐑𝐄 𝐒𝐓𝐀𝐑𝐓𝐒 𝐀𝐓<br />𝐁𝐋𝐀𝐂𝐊𝐋𝐎𝐑𝐃 𝐓𝐄𝐂𝐇</h1>
                 <div class="welcome-text">
                     <i>𝑭𝒓𝒐𝒎 𝒄𝒍𝒐𝒖𝒅 𝒉𝒐𝒔𝒕𝒊𝒏𝒈 𝒕𝒐 𝒊𝒏𝒕𝒆𝒍𝒍𝒊𝒈𝒆𝒏𝒕 𝒂𝒖𝒕𝒐𝒎𝒂𝒕𝒊𝒐𝒏, 𝒘𝒆 𝒅𝒆𝒍𝒊𝒗𝒆𝒓 𝒕𝒆𝒄𝒉𝒏𝒐𝒍𝒐𝒈𝒚 𝒕𝒉𝒂𝒕 𝒅𝒓𝒊𝒗𝒆𝒔 𝒔𝒖𝒄𝒄𝒆𝒔𝒔. <strong>𝑾𝒉𝒆𝒕𝒉𝒆𝒓 𝒚𝒐𝒖'𝒓𝒆 𝒂 𝒄𝒓𝒆𝒂𝒕𝒐𝒓, 𝒔𝒕𝒂𝒓𝒕𝒖𝒑, 𝒐𝒓 𝒆𝒔𝒕𝒂𝒃𝒍𝒊𝒔𝒉𝒆𝒅 𝒃𝒖𝒔𝒊𝒏𝒆𝒔𝒔,</strong> 𝒐𝒖𝒓 𝒑𝒐𝒘𝒆𝒓𝒇𝒖𝒍 𝑷𝒕𝒆𝒓𝒐𝒅𝒂𝒄𝒕𝒚𝒍 𝒉𝒐𝒔𝒕𝒊𝒏𝒈, 𝒂𝒅𝒗𝒂𝒏𝒄𝒆𝒅 𝑾𝒉𝒂𝒕𝒔𝑨𝒑𝒑 𝒂𝒖𝒕𝒐𝒎𝒂𝒕𝒊𝒐𝒏, 𝒂𝒏𝒅 𝒊𝒏𝒏𝒐𝒗𝒂𝒕𝒊𝒗𝒆 𝒅𝒊𝒈𝒊𝒕𝒂𝒍 𝒔𝒐𝒍𝒖𝒕𝒊𝒐𝒏𝒔 𝒂𝒓𝒆 𝒅𝒆𝒔𝒊𝒈𝒏𝒆𝒅 𝒕𝒐 𝒉𝒆𝒍𝒑 𝒚𝒐𝒖 𝒔𝒄𝒂𝒍𝒆 𝒘𝒊𝒕𝒉 𝒄𝒐𝒏𝒇𝒊𝒅𝒆𝒏𝒄𝒆.</i>
                 </div>
@@ -1383,7 +1457,7 @@
                     <label>Confirm Password</label>
                     <input type="password" id="regConfirm" required />
                     <div id="regError" class="error-msg"></div>
-                    <button type="submit" class="btn-submit">🎉 Get Started Free</button>
+                    <button type="submit" class="btn-submit">🎉 Get Started</button>
                 </form>
                 <div class="divider">or continue with</div>
                 <button class="google-btn" onclick="googleLogin()">
@@ -1406,7 +1480,7 @@
                     <input type="password" id="loginPassword" required placeholder="••••••••" />
                     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;">
                         <input type="checkbox" id="rememberMe" checked style="width:auto;accent-color:#7c3aed;" />
-                        <label for="rememberMe" style="margin:0;font-size:0.85rem;color:#94a3b8;cursor:pointer;">Remember me</label>
+                        <label for="rememberMe" style="margin:0;font-size:0.85rem;color:var(--text-secondary);cursor:pointer;">Remember me</label>
                     </div>
                     <div id="loginError" class="error-msg"></div>
                     <button type="submit" class="btn-submit">🚀 Let's Go!</button>
@@ -1423,9 +1497,15 @@
         <!-- ─── DASHBOARD ─── -->
         <div id="page-dashboard" class="page">
             <div class="greeting">
-                <h2><i class="fas fa-hand-peace"></i> Welcome back, <span id="dashUserName">User</span></h2>
-                <p>Your dashboard is ready · <span id="dateDisplay"></span></p>
+                <h2><i class="fas fa-hand-peace"></i> Welcome, <span id="dashUserName">User</span></h2>
+                <p><span id="dateDisplay"></span></p>
             </div>
+
+            <!-- ─── FREE TRIAL BUTTON ─── -->
+            <button class="btn-trial" id="claimTrialBtn" onclick="claimFreeTrial()">
+                <i class="fas fa-gift"></i> Claim Free 5GB Trial (3hrs)
+            </button>
+            <div id="trialStatus" style="margin:4px 0 12px; font-size:0.9rem;"></div>
 
             <!-- ─── VOUCHER ROW ─── -->
             <div class="voucher-row">
@@ -1446,7 +1526,7 @@
                     </button>
                 </div>
                 <div id="adminVoucherList" class="voucher-list">
-                    <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:8px;">No vouchers generated yet.</div>
+                    <div style="color:var(--text-secondary);font-size:0.85rem;text-align:center;padding:8px;">No vouchers generated yet.</div>
                 </div>
             </div>
 
@@ -1461,8 +1541,6 @@
                 <div class="balance-top">
                     <span class="balance-label">TOTAL BALANCE</span>
                     <div class="balance-actions">
-                        <button><i class="fas fa-mobile-alt"></i> App</button>
-                        <button><i class="fas fa-coins"></i> Sell SD</button>
                         <button onclick="topUpSD()"><i class="fas fa-arrow-up"></i> Top Up</button>
                     </div>
                 </div>
@@ -1500,29 +1578,13 @@
                     <i class="fas fa-coins"></i>
                     <span>Top Up</span>
                 </div>
-                <div class="qa-item" onclick="handleQuick('referral')">
-                    <i class="fas fa-share-alt"></i>
-                    <span>Referral</span>
-                </div>
                 <div class="qa-item" onclick="showPage('servers')">
                     <i class="fas fa-hdd"></i>
                     <span>My Servers</span>
                 </div>
-                <div class="qa-item" onclick="openAdminBuy()">
-                    <i class="fas fa-user-cog"></i>
-                    <span>Buy Admin Panel</span>
-                </div>
                 <div class="qa-item" onclick="openProfileModal()">
                     <i class="fas fa-user"></i>
-                    <span>My Profile</span>
-                </div>
-                <div class="qa-item" onclick="showPage('bots')">
-                    <i class="fas fa-robot"></i>
-                    <span>Bot Templates</span>
-                </div>
-                <div class="qa-item" onclick="handleQuick('support')">
-                    <i class="fas fa-life-ring"></i>
-                    <span>Support</span>
+                    <span>Profile</span>
                 </div>
             </div>
 
@@ -1534,9 +1596,9 @@
                 <div class="activity-item">
                     <div class="activity-left">
                         <div class="ai-icon"><i class="fas fa-coins"></i></div>
-                        <div class="ai-text">Welcome bonus<small>Just now</small></div>
+                        <div class="ai-text">Welcome<small>Just now</small></div>
                     </div>
-                    <div class="activity-right">+50 SD</div>
+                    <div class="activity-right">+0 SD</div>
                 </div>
             </div>
 
@@ -1552,10 +1614,10 @@
                 <button class="btn-deploy-bot" onclick="openBuyPanel()">+ Add Panel</button>
             </div>
             <div id="serversList">
-                <div style="text-align:center;color:#94a3b8;padding:20px;">Loading...</div>
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">Loading...</div>
             </div>
             <div class="footer-note">
-                <button class="btn-cancel-modal" onclick="showPage('dashboard')" style="background:rgba(30,36,64,0.7);color:#94a3b8;border:none;padding:10px 24px;border-radius:40px;cursor:pointer;font-weight:500;">← Back to Dashboard</button>
+                <button class="btn-cancel-modal" onclick="showPage('dashboard')" style="background:rgba(30,36,64,0.7);color:var(--text-secondary);border:none;padding:10px 24px;border-radius:40px;cursor:pointer;font-weight:500;">← Back to Dashboard</button>
             </div>
         </div>
 
@@ -1566,13 +1628,13 @@
                 <button class="btn-deploy-bot" onclick="deployNewBot()">+ Deploy New</button>
             </div>
             <div class="bots-list" id="botsList">
-                <div style="text-align:center;color:#94a3b8;padding:20px;">Loading bots...</div>
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">Loading bots...</div>
             </div>
-            <div style="text-align:center;color:#94a3b8;font-size:0.9rem;">
+            <div style="text-align:center;color:var(--text-secondary);font-size:0.9rem;">
                 <i class="fas fa-info-circle"></i> Manage your Telegram bots here.
             </div>
             <div class="footer-note" style="margin-top:20px;">
-                <button class="btn-cancel-modal" onclick="showPage('dashboard')" style="background:rgba(30,36,64,0.7);color:#94a3b8;border:none;padding:10px 24px;border-radius:40px;cursor:pointer;font-weight:500;">← Back to Dashboard</button>
+                <button class="btn-cancel-modal" onclick="showPage('dashboard')" style="background:rgba(30,36,64,0.7);color:var(--text-secondary);border:none;padding:10px 24px;border-radius:40px;cursor:pointer;font-weight:500;">← Back to Dashboard</button>
             </div>
         </div>
 
@@ -1580,33 +1642,38 @@
         <div class="modal" id="buyPanelModal">
             <div class="modal-content">
                 <h2>🛒 Buy Panel</h2>
-                <p class="modal-sub">Select a plan & enter username</p>
+                <p class="modal-sub">Select a plan & enter base username</p>
                 <div class="plan-grid" id="planGrid">
-                    <div class="plan-card" data-plan="1gb" data-sd="625" onclick="selectPlan('1gb', 625)">
-                        <div class="plan-name">1GB Panel</div>
-                        <div class="plan-sd">625 SD</div>
-                        <div class="plan-price">≈ 1,000 KSH</div>
+                    <div class="plan-card" data-plan="5gb" data-sd="31" onclick="selectPlan('5gb', 31, 1)">
+                        <div class="plan-name">5GB Panel</div>
+                        <div class="plan-sd">31 SD</div>
+                        <div class="plan-price">≈ 50 KSH</div>
                     </div>
-                    <div class="plan-card" data-plan="2gb" data-sd="1250" onclick="selectPlan('2gb', 1250)">
-                        <div class="plan-name">2GB Panel</div>
-                        <div class="plan-sd">1,250 SD</div>
-                        <div class="plan-price">≈ 2,000 KSH</div>
-                    </div>
-                    <div class="plan-card" data-plan="4gb" data-sd="2500" onclick="selectPlan('4gb', 2500)">
-                        <div class="plan-name">4GB Panel</div>
-                        <div class="plan-sd">2,500 SD</div>
-                        <div class="plan-price">≈ 4,000 KSH</div>
-                    </div>
-                    <div class="plan-card" data-plan="unlimited" data-sd="5000" onclick="selectPlan('unlimited', 5000)">
+                    <div class="plan-card" data-plan="unlimited" data-sd="44" onclick="selectPlan('unlimited', 44, 1)">
                         <div class="plan-name">♾️ Unlimited</div>
-                        <div class="plan-sd">5,000 SD</div>
-                        <div class="plan-price">≈ 8,000 KSH</div>
+                        <div class="plan-sd">44 SD</div>
+                        <div class="plan-price">≈ 70 KSH</div>
+                    </div>
+                    <div class="plan-card" data-plan="bundle-2" data-sd="63" onclick="selectPlan('bundle-2', 63, 2)">
+                        <div class="plan-name">2 Unlimited</div>
+                        <div class="plan-sd">63 SD</div>
+                        <div class="plan-price">≈ 100 KSH</div>
+                    </div>
+                    <div class="plan-card" data-plan="bundle-3" data-sd="81" onclick="selectPlan('bundle-3', 81, 3)">
+                        <div class="plan-name">3 Unlimited</div>
+                        <div class="plan-sd">81 SD</div>
+                        <div class="plan-price">≈ 130 KSH</div>
+                    </div>
+                    <div class="plan-card" data-plan="bundle-4" data-sd="94" onclick="selectPlan('bundle-4', 94, 4)">
+                        <div class="plan-name">4 Unlimited</div>
+                        <div class="plan-sd">94 SD</div>
+                        <div class="plan-price">≈ 150 KSH</div>
                     </div>
                 </div>
                 <div id="selectedPlanDisplay">
-                    Selected: <span id="selectedPlanName">None</span> — <span id="selectedPlanPrice">0</span> SD
+                    Selected: <span id="selectedPlanName">None</span> — <span id="selectedPlanPrice">0</span> SD<span id="selectedQuantityDisplay"></span>
                 </div>
-                <input type="text" class="modal-input" id="panelUsername" placeholder="Enter username" />
+                <input type="text" class="modal-input" id="panelUsername" placeholder="Enter base username" />
                 <input type="text" class="modal-input" id="panelPassword" placeholder="Password (leave blank for auto)" />
                 <div id="purchaseResult" style="margin-bottom:16px;"></div>
                 <div class="modal-actions" id="modalActions">
@@ -1660,7 +1727,6 @@
                     <div class="profile-row"><span class="label">Name</span><span class="value" id="profName">–</span></div>
                     <div class="profile-row"><span class="label">Email</span><span class="value" id="profEmail">–</span></div>
                     <div class="profile-row"><span class="label">SD Balance</span><span class="value" id="profBalance">0</span></div>
-                    <div class="profile-row"><span class="label">Referral Code</span><span class="value" id="profReferral">–</span></div>
                     <div class="profile-row"><span class="label">Total Servers</span><span class="value" id="profPanels">0</span></div>
                     <div class="profile-row"><span class="label">Joined</span><span class="value" id="profJoined">–</span></div>
                 </div>
@@ -1700,9 +1766,25 @@
     <script>
         // ─── API BASE ──────────────────────────────────────────────────
         const API_BASE = window.location.origin;
-
         let currentUser = null;
         let token = localStorage.getItem('blacklord_token') || null;
+
+        // ─── THEME ──────────────────────────────────────────────────────
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            const icon = document.querySelector('#themeToggle i');
+            if (icon) icon.className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        (function applyTheme() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            const icon = document.querySelector('#themeToggle i');
+            if (icon) icon.className = saved === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
 
         // ─── NAVIGATION ────────────────────────────────────────────────
         function showPage(pageId) {
@@ -1794,11 +1876,9 @@
 
         // ─── GOOGLE OAUTH ──────────────────────────────────────────────
         function googleLogin() {
-            // Redirect to the backend Google OAuth endpoint
             window.location.href = `${API_BASE}/auth/google`;
         }
 
-        // ─── HANDLE GOOGLE CALLBACK ────────────────────────────────────
         async function handleGoogleCallback() {
             const params = new URLSearchParams(window.location.search);
             const tokenParam = params.get('token');
@@ -1853,7 +1933,7 @@
                     '% uptime';
                 document.getElementById('navBotsBadge').textContent = total;
 
-                // Check if user is admin
+                // Admin section
                 const adminEmail = localStorage.getItem('blacklord_admin_email') || 'admin@blacklordtech.com';
                 const isAdmin = currentUser.email === adminEmail;
                 const adminSection = document.getElementById('adminVoucherSection');
@@ -1864,6 +1944,31 @@
                     adminSection.style.display = 'none';
                 }
 
+                // Trial status
+                const trialPanel = (currentUser.panels || []).find(p => p.trial === true);
+                const trialBtn = document.getElementById('claimTrialBtn');
+                const statusDiv = document.getElementById('trialStatus');
+                if (trialPanel) {
+                    if (trialPanel.status === 'active' && new Date(trialPanel.expiresAt) > new Date()) {
+                        trialBtn.textContent = '✅ Active Trial';
+                        trialBtn.disabled = true;
+                        statusDiv.innerHTML = `
+                            <div style="color:#fbbf24; font-size:0.9rem;">
+                                Trial active until ${new Date(trialPanel.expiresAt).toLocaleTimeString()}
+                                &nbsp;·&nbsp; <a href="${trialPanel.domain}" target="_blank" style="color:#7c3aed;">Open Panel</a>
+                            </div>
+                        `;
+                    } else {
+                        statusDiv.innerHTML = `<div style="color:#f87171; font-size:0.9rem;">Your trial has expired. Purchase a full panel.</div>`;
+                        trialBtn.textContent = '⚡ Claim Free 5GB Trial';
+                        trialBtn.disabled = false;
+                    }
+                } else {
+                    trialBtn.textContent = '⚡ Claim Free 5GB Trial';
+                    trialBtn.disabled = false;
+                    statusDiv.innerHTML = '';
+                }
+
                 // Recent Activity
                 const activityList = document.getElementById('activityList');
                 let activities = [];
@@ -1872,7 +1977,7 @@
                         activities.push({
                             icon: 'fa-server',
                             text: `Panel ${p.status === 'active' ? '🟢' : '🔴'} ${p.username}`,
-                            amount: -p.sdPrice || -1250,
+                            amount: -p.sdPrice || 0,
                             date: new Date(p.createdAt).toLocaleDateString()
                         });
                     });
@@ -1898,7 +2003,7 @@
                     });
                 }
                 if (activities.length === 0) {
-                    activities.push({ icon: 'fa-coins', text: 'Welcome bonus', amount: 50, date: 'Just now' });
+                    activities.push({ icon: 'fa-coins', text: 'Welcome', amount: 0, date: 'Just now' });
                 }
                 const latest = activities.slice(-8).reverse();
                 activityList.innerHTML = latest.map(a =>
@@ -1938,9 +2043,10 @@
                         `<div class="empty-state">No panels deployed. <button onclick="openBuyPanel()" style="background:#7c3aed;border:none;color:#fff;padding:6px 16px;border-radius:30px;cursor:pointer;font-weight:500;margin-left:8px;">+ Add Panel</button></div>`;
                 } else {
                     panels.forEach(p => {
+                        const isTrial = p.trial ? `<span class="trial-badge">TRIAL</span>` : '';
                         html += `<div class="server-item">
                             <div class="server-info">
-                                <span class="server-name">${p.username}</span>
+                                <span class="server-name">${p.username} ${isTrial}</span>
                                 <span class="server-details">${p.plan || 'Custom'} · ${p.domain || 'N/A'}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
@@ -2034,7 +2140,7 @@
                 const container = document.getElementById('botsList');
                 if (bots.length === 0) {
                     container.innerHTML =
-                        `<div style="text-align:center;color:#94a3b8;padding:30px;">
+                        `<div style="text-align:center;color:var(--text-secondary);padding:30px;">
                         <i class="fas fa-robot" style="font-size:3rem;display:block;margin-bottom:12px;color:#7c3aed;"></i>
                         No bots deployed yet.<br>
                         <button onclick="deployNewBot()" style="background:linear-gradient(135deg,#7c3aed,#3b82f6);border:none;color:#fff;padding:8px 24px;border-radius:40px;margin-top:12px;cursor:pointer;font-weight:600;">Deploy Your First Bot</button>
@@ -2128,13 +2234,16 @@
         // ─── BUY PANEL ──────────────────────────────────────────────────
         let selectedPlan = null;
         let selectedSdPrice = 0;
+        let selectedQuantity = 1;
 
         function openBuyPanel() {
             if (!token) { showToast('Please log in first', 'fa-exclamation-circle', '#f87171'); return; }
             selectedPlan = null;
             selectedSdPrice = 0;
+            selectedQuantity = 1;
             document.getElementById('selectedPlanName').textContent = 'None';
             document.getElementById('selectedPlanPrice').textContent = '0';
+            document.getElementById('selectedQuantityDisplay').textContent = '';
             document.querySelectorAll('#planGrid .plan-card').forEach(el => el.classList.remove('selected'));
             document.getElementById('panelUsername').value = '';
             document.getElementById('panelPassword').value = '';
@@ -2148,12 +2257,20 @@
             document.getElementById('buyPanelModal').classList.add('active');
         }
 
-        function selectPlan(plan, sdPrice) {
+        function selectPlan(plan, sdPrice, quantity) {
             selectedPlan = plan;
             selectedSdPrice = sdPrice;
-            const nameMap = { '1gb': '1GB Panel', '2gb': '2GB Panel', '4gb': '4GB Panel', 'unlimited': '♾️ Unlimited' };
+            selectedQuantity = quantity || 1;
+            const nameMap = {
+                '5gb': '5GB Panel',
+                'unlimited': '♾️ Unlimited',
+                'bundle-2': '2 Unlimited',
+                'bundle-3': '3 Unlimited',
+                'bundle-4': '4 Unlimited'
+            };
             document.getElementById('selectedPlanName').textContent = nameMap[plan] || plan;
             document.getElementById('selectedPlanPrice').textContent = sdPrice.toLocaleString();
+            document.getElementById('selectedQuantityDisplay').textContent = quantity > 1 ? ` (${quantity} servers)` : '';
             document.querySelectorAll('#planGrid .plan-card').forEach(el => el.classList.remove('selected'));
             document.querySelector(`#planGrid .plan-card[data-plan="${plan}"]`).classList.add('selected');
             document.getElementById('purchaseResult').innerHTML = '';
@@ -2168,7 +2285,7 @@
             }
             const username = document.getElementById('panelUsername').value.trim();
             if (!username) {
-                document.getElementById('purchaseResult').innerHTML = '<div class="error-msg">❌ Please enter a username.</div>';
+                document.getElementById('purchaseResult').innerHTML = '<div class="error-msg">❌ Please enter a base username.</div>';
                 return;
             }
             if (!/^[a-zA-Z0-9_-]{3,}$/.test(username)) {
@@ -2188,7 +2305,7 @@
             const buyBtn = document.getElementById('buyBtn');
             buyBtn.disabled = true;
             buyBtn.textContent = '⏳ Processing...';
-            document.getElementById('purchaseResult').innerHTML = '<div class="success-msg" style="color:#fbbf24;">⏳ Creating your panel...</div>';
+            document.getElementById('purchaseResult').innerHTML = '<div class="success-msg" style="color:#fbbf24;">⏳ Creating your panel(s)...</div>';
 
             try {
                 const res = await fetch(`${API_BASE}/api/buy`, {
@@ -2198,7 +2315,8 @@
                         productType: 'panel',
                         productId: selectedPlan,
                         username,
-                        password
+                        password,
+                        quantity: selectedQuantity
                     })
                 });
                 const data = await res.json();
@@ -2212,23 +2330,20 @@
                     }
                     throw new Error(data.error || 'Purchase failed');
                 }
-                const panel = data.panel;
-                document.getElementById('purchaseResult').innerHTML = `
-                    <div class="success-msg">✅ Panel created successfully!</div>
-                    <div class="creds-box">
-                        <div class="creds-row"><span class="creds-label">👤 Username</span><span class="creds-value">${panel.username}</span></div>
-                        <div class="creds-row"><span class="creds-label">🔑 Password</span><span class="creds-value">${panel.password}</span></div>
-                        <div class="creds-row"><span class="creds-label">🌐 Domain</span><span class="creds-value"><i class="fas fa-external-link-alt"></i> ${panel.domain}</span></div>
-                        <div class="creds-row"><span class="creds-label">💾 Plan</span><span class="creds-value">${panel.plan.toUpperCase()} (${selectedSdPrice} SD)</span></div>
-                        <div class="creds-row"><span class="creds-label">📡 Status</span><span class="creds-value" style="color:#34d399;">🟢 Active</span></div>
+                let panelsHtml = data.panels ? data.panels.map(p => `
+                    <div style="border-bottom:1px solid rgba(255,255,255,0.05); padding:8px 0;">
+                        <strong>${p.username}</strong> – ${p.domain} (pass: ${p.password})
                     </div>
-                    <p style="color:#94a3b8;font-size:0.85rem;text-align:center;">⚠️ Save these credentials!</p>
+                `).join('') : '';
+
+                document.getElementById('purchaseResult').innerHTML = `
+                    <div class="success-msg">✅ ${data.created || data.panels?.length || 0} panel(s) created${data.failed ? `, ${data.failed} failed` : ''}!</div>
+                    ${panelsHtml ? `<div style="max-height:200px; overflow-y:auto; margin-top:10px;">${panelsHtml}</div>` : ''}
                 `;
                 document.getElementById('modalActions').innerHTML = `
-                    <button class="btn-open-panel" onclick="window.open('${panel.domain}', '_blank')"><i class="fas fa-external-link-alt"></i> Open Panel</button>
                     <button class="btn-cancel-modal" onclick="closeModal('buyPanelModal')">Close</button>
                 `;
-                showToast('🎉 Panel deployed!', 'fa-check-circle', '#34d399');
+                showToast('🎉 Panel(s) deployed!', 'fa-check-circle', '#34d399');
                 loadDashboard();
                 if (document.getElementById('page-servers').classList.contains('active')) loadServersPage();
             } catch (e) {
@@ -2285,7 +2400,7 @@
             const username = document.getElementById('adminUsername').value.trim();
             if (!username) {
                 document.getElementById('adminPurchaseResult').innerHTML =
-                '<div class="error-msg">❌ Please enter a username.</div>';
+                    '<div class="error-msg">❌ Please enter a username.</div>';
                 return;
             }
             if (!/^[a-zA-Z0-9_-]{3,}$/.test(username)) {
@@ -2336,10 +2451,10 @@
                         <div class="creds-row"><span class="creds-label">👤 Username</span><span class="creds-value">${panel.username}</span></div>
                         <div class="creds-row"><span class="creds-label">🔑 Password</span><span class="creds-value">${panel.password}</span></div>
                         <div class="creds-row"><span class="creds-label">🌐 Domain</span><span class="creds-value"><i class="fas fa-external-link-alt"></i> ${panel.domain}</span></div>
-                        <div class="creds-row"><span class="creds-label">💾 Plan</span><span class="creds-value">${selectedAdminPlan.replace('admin-','').toUpperCase()} (${selectedAdminPrice} SD)</span></div>
+                        <div class="creds-row"><span class="creds-label">💾 Plan</span><span class="creds-value">${selectedAdminPlan.replace('admin-', '').toUpperCase()} (${selectedAdminPrice} SD)</span></div>
                         <div class="creds-row"><span class="creds-label">📡 Status</span><span class="creds-value" style="color:#34d399;">🟢 Active</span></div>
                     </div>
-                    <p style="color:#94a3b8;font-size:0.85rem;text-align:center;">⚠️ Save these credentials!</p>
+                    <p style="color:var(--text-secondary);font-size:0.85rem;text-align:center;">⚠️ Save these credentials!</p>
                 `;
                 document.getElementById('adminBuyBtn').disabled = true;
                 document.getElementById('adminBuyBtn').textContent = '✅ Done';
@@ -2350,6 +2465,58 @@
                 document.getElementById('adminPurchaseResult').innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
                 buyBtn.disabled = false;
                 buyBtn.textContent = 'Retry';
+            }
+        }
+
+        // ─── CLAIM FREE TRIAL ──────────────────────────────────────────
+        async function claimFreeTrial() {
+            if (!token) { showToast('Please log in first', 'fa-exclamation-circle', '#f87171'); return; }
+            const btn = document.getElementById('claimTrialBtn');
+            const statusDiv = document.getElementById('trialStatus');
+            btn.disabled = true;
+            btn.textContent = '⏳ Creating...';
+            statusDiv.innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/claim-free-panel`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 400 && data.panel) {
+                        statusDiv.innerHTML = `
+                            <div style="color:#fbbf24;">
+                                ✅ You already have an active trial: <strong>${data.panel.username}</strong> (expires ${new Date(data.panel.expiresAt).toLocaleTimeString()})
+                                <br><a href="${data.panel.domain}" target="_blank" style="color:#7c3aed;">Open Panel</a>
+                            </div>
+                        `;
+                        btn.textContent = '✅ Already Claimed';
+                        btn.disabled = true;
+                        return;
+                    }
+                    throw new Error(data.error || 'Failed to claim trial');
+                }
+
+                statusDiv.innerHTML = `
+                    <div style="background:rgba(52,211,153,0.1); border:1px solid #34d399; border-radius:12px; padding:12px;">
+                        <div style="color:#34d399;">✅ Trial panel created!</div>
+                        <div style="margin-top:6px;">
+                            <strong>Username:</strong> ${data.panel.username}<br>
+                            <strong>Password:</strong> ${data.panel.password}<br>
+                            <strong>Domain:</strong> <a href="${data.panel.domain}" target="_blank" style="color:#7c3aed;">${data.panel.domain}</a><br>
+                            <strong>Expires:</strong> ${new Date(data.panel.expiresAt).toLocaleString()}
+                        </div>
+                    </div>
+                `;
+                btn.textContent = '🎉 Claimed!';
+                btn.disabled = true;
+                showToast('🎉 Trial panel created!', 'fa-gift', '#fbbf24');
+                loadDashboard();
+            } catch (e) {
+                statusDiv.innerHTML = `<div style="color:#f87171;">❌ ${e.message}</div>`;
+                btn.disabled = false;
+                btn.textContent = '⚡ Claim Free 5GB Trial';
             }
         }
 
@@ -2372,7 +2539,8 @@
                 if (data.authorization_url) {
                     window.location.href = data.authorization_url;
                 } else {
-                    throw new Error('No payment URL returned');
+                    showToast(`✅ ${data.message || 'Top-up successful!'}`, 'fa-check-circle', '#34d399');
+                    loadDashboard();
                 }
             } catch (e) {
                 showToast(e.message, 'fa-exclamation-circle', '#f87171');
@@ -2460,7 +2628,7 @@
                 const container = document.getElementById('adminVoucherList');
                 if (!data.vouchers || data.vouchers.length === 0) {
                     container.innerHTML =
-                    '<div style="color:#64748b;font-size:0.85rem;text-align:center;padding:8px;">No vouchers generated yet.</div>';
+                        '<div style="color:var(--text-secondary);font-size:0.85rem;text-align:center;padding:8px;">No vouchers generated yet.</div>';
                     return;
                 }
                 container.innerHTML = data.vouchers.map(v =>
@@ -2482,7 +2650,6 @@
             document.getElementById('profName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
             document.getElementById('profEmail').textContent = currentUser.email;
             document.getElementById('profBalance').textContent = (currentUser.sdBalance || 0) + ' SD';
-            document.getElementById('profReferral').textContent = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
             document.getElementById('profPanels').textContent = currentUser.totalServers || 0;
             document.getElementById('profJoined').textContent = new Date().toLocaleDateString();
             document.getElementById('profileModal').classList.add('active');
@@ -2526,13 +2693,10 @@
 
         // ─── INIT ──────────────────────────────────────────────────────
         (function init() {
-            // Check for Google OAuth callback
             handleGoogleCallback();
-
             if (!localStorage.getItem('blacklord_admin_email')) {
                 localStorage.setItem('blacklord_admin_email', 'admin@blacklordtech.com');
             }
-
             if (token) {
                 fetch(`${API_BASE}/api/me`, { headers: { 'Authorization': `Bearer ${token}` } })
                     .then(res => res.json())
@@ -2551,16 +2715,7 @@
             document.getElementById('dateDisplay').textContent =
                 new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         })();
-
-        // ─── GOOGLE OAUTH FALLBACK: if backend redirects with error ───
-        (function checkGoogleError() {
-            const params = new URLSearchParams(window.location.search);
-            const error = params.get('error');
-            if (error) {
-                showToast('❌ Google login failed: ' + error, 'fa-exclamation-circle', '#f87171');
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        })();
     </script>
+
 </body>
 </html>
